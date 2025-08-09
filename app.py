@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, send_file, redirect, url_for
+from flask import Flask, render_template, request, send_file, redirect, url_for, after_this_request
 import os
 from werkzeug.utils import secure_filename
 from PIL import Image
@@ -19,6 +19,13 @@ download_history = []
 
 @app.route("/")
 def index():
+    # Cleanup all converted files on page load
+    for fname in os.listdir(CONVERTED_FOLDER):
+        try:
+            os.remove(os.path.join(CONVERTED_FOLDER, fname))
+        except Exception as e:
+            app.logger.error(f"Error deleting converted file {fname}: {e}")
+
     return render_template("index.html", history=download_history)
 
 @app.route("/convert", methods=["POST"])
@@ -38,7 +45,7 @@ def convert_file():
 
     output_path = None
 
-    # TXT  PDF
+    # TXT -> PDF
     if conversion_type == "txt_to_pdf":
         from fpdf import FPDF
         pdf = FPDF()
@@ -50,13 +57,13 @@ def convert_file():
         output_path = os.path.join(CONVERTED_FOLDER, filename.rsplit(".", 1)[0] + ".pdf")
         pdf.output(output_path)
 
-    # JPG  PNG
+    # JPG -> PNG
     elif conversion_type == "jpg_to_png":
         img = Image.open(input_path)
         output_path = os.path.join(CONVERTED_FOLDER, filename.rsplit(".", 1)[0] + ".png")
         img.save(output_path, "PNG")
 
-    # PDF  Word
+    # PDF -> Word
     elif conversion_type == "pdf_to_word":
         pdf_reader = PyPDF2.PdfReader(open(input_path, "rb"))
         doc = Document()
@@ -77,9 +84,15 @@ def convert_file():
         "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     })
 
+    @after_this_request
+    def cleanup(response):
+        try:
+            os.remove(input_path)
+        except Exception as e:
+            app.logger.error(f"Error deleting uploaded file {input_path}: {e}")
+        return response
+
     return send_file(output_path, as_attachment=True)
 
 if __name__ == "__main__":
     app.run(debug=True)
-
-
