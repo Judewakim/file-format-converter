@@ -1,49 +1,85 @@
+from flask import Flask, render_template, request, send_file, redirect, url_for
 import os
-from flask import Flask, render_template, request, send_from_directory
-from PIL import Image
 from werkzeug.utils import secure_filename
-
-UPLOAD_FOLDER = 'uploads'
-CONVERTED_FOLDER = 'converted'
-ALLOWED_EXTENSIONS = {'png'}
+from PIL import Image
+import PyPDF2
+from docx import Document
+import io
+import datetime
 
 app = Flask(__name__)
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-app.config['CONVERTED_FOLDER'] = CONVERTED_FOLDER
 
+UPLOAD_FOLDER = "uploads"
+CONVERTED_FOLDER = "converted"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(CONVERTED_FOLDER, exist_ok=True)
 
-def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+# In-memory download history (will reset when app restarts)
+download_history = []
 
-@app.route("/", methods=["GET"])
+@app.route("/")
 def index():
-    return render_template("index.html")
+    return render_template("index.html", history=download_history)
 
 @app.route("/convert", methods=["POST"])
-def convert():
-    if 'file' not in request.files:
+def convert_file():
+    if "file" not in request.files:
         return "No file uploaded", 400
-    file = request.files['file']
-    if file and allowed_file(file.filename):
-        filename = secure_filename(file.filename)
-        upload_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-        file.save(upload_path)
 
-        img = Image.open(upload_path)
-        converted_filename = filename.rsplit('.', 1)[0] + ".jpg"
-        converted_path = os.path.join(app.config['CONVERTED_FOLDER'], converted_filename)
-        rgb_img = img.convert('RGB')
-        rgb_img.save(converted_path)
+    file = request.files["file"]
+    conversion_type = request.form.get("conversion_type")
 
-        return render_template("index.html", download_url=f"/download/{converted_filename}")
-    return "Invalid file type", 400
+    if file.filename == "":
+        return "No selected file", 400
 
-@app.route("/download/<filename>")
-def download(filename):
-    return send_from_directory(app.config['CONVERTED_FOLDER'], filename, as_attachment=True)
+    filename = secure_filename(file.filename)
+    input_path = os.path.join(UPLOAD_FOLDER, filename)
+    file.save(input_path)
+
+    output_path = None
+
+    # TXT  PDF
+    if conversion_type == "txt_to_pdf":
+        from fpdf import FPDF
+        pdf = FPDF()
+        pdf.add_page()
+        pdf.set_font("Arial", size=12)
+        with open(input_path, "r") as f:
+            for line in f:
+                pdf.cell(200, 10, txt=line, ln=True)
+        output_path = os.path.join(CONVERTED_FOLDER, filename.rsplit(".", 1)[0] + ".pdf")
+        pdf.output(output_path)
+
+    # JPG  PNG
+    elif conversion_type == "jpg_to_png":
+        img = Image.open(input_path)
+        output_path = os.path.join(CONVERTED_FOLDER, filename.rsplit(".", 1)[0] + ".png")
+        img.save(output_path, "PNG")
+
+    # PDF  Word
+    elif conversion_type == "pdf_to_word":
+        pdf_reader = PyPDF2.PdfReader(open(input_path, "rb"))
+        doc = Document()
+        for page in pdf_reader.pages:
+            text = page.extract_text()
+            if text:
+                doc.add_paragraph(text)
+        output_path = os.path.join(CONVERTED_FOLDER, filename.rsplit(".", 1)[0] + ".docx")
+        doc.save(output_path)
+
+    else:
+        return "Unsupported conversion type", 400
+
+    # Record in history
+    download_history.append({
+        "filename": os.path.basename(output_path),
+        "conversion_type": conversion_type,
+        "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    })
+
+    return send_file(output_path, as_attachment=True)
 
 if __name__ == "__main__":
     app.run(debug=True)
+
 

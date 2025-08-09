@@ -1,0 +1,40 @@
+-create github repo with terraform .gitignore
+-open editor (vs code) from github desktop via repo in browser
+-create main.tf file
+-create providers block
+-create ec2 instance block
+	-open terraform registry on ec2 
+	-use the variables that are required then the ones you know you need (ami, isntance type, key name, security groups, userdata)
+	-for each value make it a variable. HOW?
+-create a variables.tf
+-for each variable in the ec2 block, make a variable in the variables.tf
+-for key pair, i used a preexisting key pair and dragged it into the editor
+-opened terminal in editor and ran 'ssh-keygen -y -f keypair.pem > keypair.pub' to create a .pub file from the .pem key pair
+-created a resource in the variables.tf for the keypair
+-create a bash userdata script to bootstrap jenkins to the instance
+-create s3 bucket
+-create an iam role
+	-create actual role
+	-create trust policy for role
+	-create access policy
+	-create access policy doc
+	-attach policy to role
+	-create iam instance for ec2 to use
+-split files into same services per file
+-add outputs.tf to output the public dns to terminal
+-run terraform commands
+
+Verify:
+-ssh into instnace and get jenkins admin pw
+-get the public ip and go there via browser and input the admin pw 
+
+
+
+Obstacles: 
+-find the jenkins admin pw at /var/lib/jenkins/secrets/initialAdminPassword. ssh into instance and run 'sudo cat /var/lib/jenkins/secrets/initialAdminPassword' but add 22 to SG first
+
+-making sure the security group youre using (i used a preexisting one) has 8080 open
+
+-was using a vresion of ubuntu (Ubuntu Noble 24.04) that is very new and unsupported yet by Jenkins' APT repo so the user data script wasnt working
+
+-make sure if you do restarts/stops on the EC2 instance you get the new IP address unless you set an elastic IP

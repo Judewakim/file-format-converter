@@ -1,23 +1,26 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PNG to JPG Converter</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>File Converter</title>
 </head>
-<body class="bg-gray-100 text-center p-10">
-    <h1 class="text-3xl font-bold mb-4">PNG to JPG Converter</h1>
-    <form action="/convert" method="POST" enctype="multipart/form-data" class="bg-white p-6 rounded shadow-md max-w-md mx-auto">
-        <input type="file" name="file" accept="image/png" required class="mb-4 block w-full">
-        <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded">Convert</button>
+<body>
+    <h1>Upload a file for conversion</h1>
+    <form action="/convert" method="post" enctype="multipart/form-data">
+        <input type="file" name="file" required>
+        <select name="conversion_type" required>
+            <option value="txt_to_pdf">TXT  PDF</option>
+            <option value="jpg_to_png">JPG  PNG</option>
+            <option value="pdf_to_word">PDF  Word</option>
+        </select>
+        <button type="submit">Convert</button>
     </form>
 
-    {% if download_url %}
-    <div class="mt-6">
-        <a href="{{ download_url }}" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded">Download JPG</a>
-    </div>
-    {% endif %}
+    <h2>Download History</h2>
+    <ul>
+        {% for entry in history %}
+            <li>{{ entry.timestamp }} - {{ entry.filename }} ({{ entry.conversion_type }})</li>
+        {% endfor %}
+    </ul>
 </body>
 </html>
 
