@@ -94,5 +94,18 @@ def convert_file():
 
     return send_file(output_path, as_attachment=True)
 
+# Explicit routes for blog posts
+@app.route('/blog/pdf-to-word.html')
+def blog_pdf_to_word():
+    return render_template('blog/pdf-to-word.html')
+
+@app.route('/blog/jpg-to-png.html')
+def blog_jpg_to_png():
+    return render_template('blog/jpg-to-png.html')
+
+@app.route('/blog/txt-to-pdf.html')
+def blog_txt_to_pdf():
+    return render_template('blog/txt-to-pdf.html')
+
 if __name__ == "__main__":
     app.run(debug=True)

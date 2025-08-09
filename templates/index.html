@@ -3,12 +3,24 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>File Format Converter</title>
+  <title>Fast & Free Online File Converter – Convert JPG, PNG, PDF, Word & TXT Easily</title>
+  <meta name="description" content="Convert files online quickly and free. Use our easy file converter to convert JPG to PNG, PDF to Word, TXT to PDF and more with no signup needed." />
+  <meta name="keywords" content="file converter online, free file conversion, convert files online, jpg to png converter, pdf to word converter, txt to pdf converter, convert pdf to word online" />
+  <meta name="robots" content="index, follow" />
+  <link rel="canonical" href="https://conversions.lol/" />
+  <!-- Open Graph -->
+  <meta property="og:title" content="Fast & Free Online File Converter – Convert JPG, PNG, PDF, Word & TXT Easily" />
+  <meta property="og:description" content="Convert files online quickly and free. Use our easy file converter to convert JPG to PNG, PDF to Word, TXT to PDF and more with no signup needed." />
+  <meta property="og:url" content="https://conversions.lol/" />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="https://conversions.lol/preview-image.png" />
   <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
 </head>
+
 <body>
   <div class="container">
-    <h1>File Format Converter</h1>
+    <h1>Easy Online File Converter</h1>
+    <h2>Convert JPG, PNG, PDF, Word, TXT & More Instantly</h2>
 
     <form id="convert-form" action="{{ url_for('convert_file') }}" method="POST" enctype="multipart/form-data">
       <div id="drop-zone" class="upload-area">
@@ -31,11 +43,11 @@
         <div id="progress-bar"></div>
       </div>
 
-      <button type="submit">Convert</button>
+      <button type="submit">Convert Now</button>
     </form>
 
     <section id="history-section">
-      <h2>Download History</h2>
+      <h2>Your Recent File Conversions</h2>
       {% if history %}
         <ul>
           {% for item in history %}
@@ -43,7 +55,7 @@
           {% endfor %}
         </ul>
       {% else %}
-        <p>No conversions yet.</p>
+        <p>No conversions yet. Start converting your files now!</p>
       {% endif %}
     </section>
   </div>
@@ -152,5 +164,13 @@
     // Initialize filename display on page load
     updateFileName();
   </script>
+<footer style="text-align:center; margin-top:40px; padding:20px; border-top:1px solid #ddd; font-size: 14px; color: #666;">
+  <p>Explore our helpful blog for file conversion tips:</p>
+  <p>
+    <a href="/blog/pdf-to-word.html">How to Convert PDF to Word Online</a> | 
+    <a href="/blog/jpg-to-png.html">How to Convert JPG to PNG Easily</a> | 
+    <a href="/blog/txt-to-pdf.html">How to Convert TXT to PDF Fast</a>
+  </p>
+</footer>
 </body>
 </html>
