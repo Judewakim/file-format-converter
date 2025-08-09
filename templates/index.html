@@ -1,26 +1,156 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>File Converter</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>File Format Converter</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
 </head>
 <body>
-    <h1>Upload a file for conversion</h1>
-    <form action="/convert" method="post" enctype="multipart/form-data">
-        <input type="file" name="file" required>
-        <select name="conversion_type" required>
-            <option value="txt_to_pdf">TXT  PDF</option>
-            <option value="jpg_to_png">JPG  PNG</option>
-            <option value="pdf_to_word">PDF  Word</option>
-        </select>
-        <button type="submit">Convert</button>
+  <div class="container">
+    <h1>File Format Converter</h1>
+
+    <form id="convert-form" action="{{ url_for('convert_file') }}" method="POST" enctype="multipart/form-data">
+      <div id="drop-zone" class="upload-area">
+        <p>Drag & Drop your file here or <span id="click-select">click to select</span></p>
+        <input type="file" name="file" id="file-input" hidden required />
+      </div>
+
+      <!-- Added filename display here -->
+      <p id="file-name" style="font-style: italic; margin-top: 8px; color: #555;">No file selected</p>
+
+      <label for="conversion-type">Select Conversion Type:</label>
+      <select name="conversion_type" id="conversion-type" required>
+        <option value="" disabled selected>-- Choose conversion --</option>
+        <option value="txt_to_pdf">TXT → PDF</option>
+        <option value="jpg_to_png">JPG → PNG</option>
+        <option value="pdf_to_word">PDF → Word</option>
+      </select>
+
+      <div id="progress-container" style="display:none; margin-top:10px;">
+        <div id="progress-bar"></div>
+      </div>
+
+      <button type="submit">Convert</button>
     </form>
 
-    <h2>Download History</h2>
-    <ul>
-        {% for entry in history %}
-            <li>{{ entry.timestamp }} - {{ entry.filename }} ({{ entry.conversion_type }})</li>
-        {% endfor %}
-    </ul>
+    <section id="history-section">
+      <h2>Download History</h2>
+      {% if history %}
+        <ul>
+          {% for item in history %}
+            <li>{{ item.timestamp }} — {{ item.filename }} ({{ item.conversion_type.replace('_', ' → ').upper() }})</li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p>No conversions yet.</p>
+      {% endif %}
+    </section>
+  </div>
+
+  <script>
+    const dropZone = document.getElementById('drop-zone');
+    const fileInput = document.getElementById('file-input');
+    const clickSelect = document.getElementById('click-select');
+    const form = document.getElementById('convert-form');
+    const progressContainer = document.getElementById('progress-container');
+    const progressBar = document.getElementById('progress-bar');
+    const fileNameElem = document.getElementById('file-name');
+
+    // Function to update displayed filename
+    function updateFileName() {
+      if (fileInput.files.length > 0) {
+        fileNameElem.textContent = `Selected file: ${fileInput.files[0].name}`;
+      } else {
+        fileNameElem.textContent = 'No file selected';
+      }
+    }
+
+    // Click to open file dialog
+    clickSelect.addEventListener('click', () => fileInput.click());
+
+    // Update filename when user selects a file via click
+    fileInput.addEventListener('change', updateFileName);
+
+    // Drag & drop events
+    dropZone.addEventListener('dragover', e => {
+      e.preventDefault();
+      dropZone.classList.add('dragover');
+    });
+    dropZone.addEventListener('dragleave', e => {
+      dropZone.classList.remove('dragover');
+    });
+    dropZone.addEventListener('drop', e => {
+      e.preventDefault();
+      dropZone.classList.remove('dragover');
+      if (e.dataTransfer.files.length > 0) {
+        fileInput.files = e.dataTransfer.files;
+        updateFileName();
+      }
+    });
+
+    // Show progress bar on form submit and upload file via XMLHttpRequest
+    form.addEventListener('submit', e => {
+      e.preventDefault();
+      if (!fileInput.files.length) {
+        alert('Please select a file to convert.');
+        return;
+      }
+      if (!document.getElementById('conversion-type').value) {
+        alert('Please select a conversion type.');
+        return;
+      }
+
+      const formData = new FormData(form);
+      const xhr = new XMLHttpRequest();
+
+      xhr.open('POST', form.action, true);
+
+      xhr.upload.onprogress = e => {
+        if (e.lengthComputable) {
+          progressContainer.style.display = 'block';
+          const percentComplete = (e.loaded / e.total) * 100;
+          progressBar.style.width = percentComplete + '%';
+        }
+      };
+
+      xhr.onload = () => {
+        if (xhr.status === 200) {
+          // Trigger download of converted file
+          const disposition = xhr.getResponseHeader('Content-Disposition');
+          let filename = "converted-file";
+          if (disposition && disposition.indexOf('filename=') !== -1) {
+            filename = disposition.split('filename=')[1].replace(/['"]/g, '');
+          }
+          const blob = new Blob([xhr.response], { type: xhr.getResponseHeader('Content-Type') });
+          const link = document.createElement('a');
+          link.href = window.URL.createObjectURL(blob);
+          link.download = filename;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+
+          // Reset form and progress bar
+          form.reset();
+          progressBar.style.width = '0%';
+          progressContainer.style.display = 'none';
+          updateFileName(); // Reset filename display
+
+          // Reload page to update download history (or use AJAX to update dynamically)
+          window.location.reload();
+        } else {
+          alert('Conversion failed. Please try again.');
+          progressBar.style.width = '0%';
+          progressContainer.style.display = 'none';
+        }
+      };
+
+      xhr.responseType = 'blob';
+      xhr.send(formData);
+    });
+
+    // Initialize filename display on page load
+    updateFileName();
+  </script>
 </body>
 </html>
-
