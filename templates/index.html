@@ -3,12 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>File Format Converter</title>
+    <title>PNG to JPG Converter</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100 text-center p-10">
-    <h1 class="text-3xl font-bold mb-4">File Format Converter</h1>
-    <p class="text-gray-600">Hello World - Deployed with Flask + TailwindCSS</p>
+    <h1 class="text-3xl font-bold mb-4">PNG to JPG Converter</h1>
+    <form action="/convert" method="POST" enctype="multipart/form-data" class="bg-white p-6 rounded shadow-md max-w-md mx-auto">
+        <input type="file" name="file" accept="image/png" required class="mb-4 block w-full">
+        <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded">Convert</button>
+    </form>
+
+    {% if download_url %}
+    <div class="mt-6">
+        <a href="{{ download_url }}" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded">Download JPG</a>
+    </div>
+    {% endif %}
 </body>
 </html>
 
