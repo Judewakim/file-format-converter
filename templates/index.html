@@ -33,7 +33,7 @@
 
     <form id="convert-form" action="{{ url_for('convert_file') }}" method="POST" enctype="multipart/form-data">
       <div id="drop-zone" class="upload-area">
-        <p>Drag & Drop your file here or <span id="click-select">click to select</span></p>
+        <p>Drag & Drop your file here or <span id="click-select" style="text-decoration: underline; cursor: pointer;">click to select</span></p>
         <input type="file" name="file" id="file-input" hidden required />
       </div>
 
