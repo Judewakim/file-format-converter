@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Account - File Converter</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 40px auto;
+      padding: 0 20px;
+      background: #f9f9f9;
+      color: #333;
+    }
+    h1 {
+      border-bottom: 2px solid #007acc;
+      padding-bottom: 10px;
+    }
+    section {
+      background: #fff;
+      padding: 20px;
+      margin-top: 20px;
+      border-radius: 8px;
+      box-shadow: 0 0 8px rgba(0,0,0,0.1);
+    }
+    .logout-btn {
+      display: inline-block;
+      margin-top: 30px;
+      padding: 10px 20px;
+      background-color: #007acc;
+      color: white;
+      text-decoration: none;
+      border-radius: 4px;
+      font-weight: bold;
+    }
+    .logout-btn:hover {
+      background-color: #005fa3;
+    }
+    /* New button styles */
+    .back-home-btn {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      background-color: #007acc;
+      color: white;
+      padding: 10px 18px;
+      border-radius: 4px;
+      font-weight: bold;
+      text-decoration: none;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+      transition: background-color 0.2s ease;
+      z-index: 9999;
+    }
+    .back-home-btn:hover {
+      background-color: #005fa3;
+    }
+  </style>
+</head>
+<body>
+  <a href="{{ url_for('index') }}" class="back-home-btn" title="Back to Home">🏠 Home</a>
+
+  <h1>Welcome, {{ user.name }}</h1>
+
+  <section>
+    <h2>Account Info</h2>
+    <p><strong>Email:</strong> {{ user.email }}</p>
+    <!-- Add more user info as needed -->
+  </section>
+
+  <section>
+    <h2>Billing Info</h2>
+    <p>Your billing information is currently not available.</p>
+    <!-- Replace above with real billing info when ready -->
+    <br>
+    <!-- Subscription info placeholder -->
+    <h3>Subscription Model</h3>
+    <p>Currently supporting Pay-As-You-Go and Subscription plans. <br> Your current subscription details will appear here.</p>
+  </section>
+
+  <a href="{{ url_for('logout') }}" class="logout-btn">Logout</a>
+</body>
+</html>

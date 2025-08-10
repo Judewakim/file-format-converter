@@ -1,0 +1,15 @@
+# Ignore environment variable files
+.env
+*.env
+
+# Ignore Python cache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Ignore other common files
+instance/
+*.sqlite3
+uploads/
+converted/
