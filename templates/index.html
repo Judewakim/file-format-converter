@@ -15,6 +15,15 @@
   <meta property="og:type" content="website" />
   <meta property="og:image" content="https://conversions.lol/preview-image.png" />
   <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
+  <!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-L4XPNEPVJP"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-L4XPNEPVJP');
+</script>
 </head>
 
 <body>
@@ -58,118 +67,53 @@
         <p>No conversions yet. Start converting your files now!</p>
       {% endif %}
     </section>
+
+    <!-- User Feedback Form Start -->
+    <section style="margin-top: 50px;">
+      <h2>User Feedback</h2>
+      <form id="feedback-form" action="{{ url_for('submit_feedback') }}" method="POST">
+        <label for="feedback-text">Your Feedback:</label>
+        <textarea id="feedback-text" name="feedback" rows="5" required style="width:100%; padding:8px; margin-top:5px; font-size: 16px;"></textarea>
+        <button type="submit" style="margin-top:10px;">Submit Feedback</button>
+      </form>
+      {% if feedback_message %}
+        <p style="margin-top: 10px; color: green;">{{ feedback_message }}</p>
+      {% endif %}
+    </section>
+    <!-- User Feedback Form End -->
+
   </div>
 
   <script>
-    const dropZone = document.getElementById('drop-zone');
-    const fileInput = document.getElementById('file-input');
-    const clickSelect = document.getElementById('click-select');
-    const form = document.getElementById('convert-form');
-    const progressContainer = document.getElementById('progress-container');
-    const progressBar = document.getElementById('progress-bar');
-    const fileNameElem = document.getElementById('file-name');
-
-    // Function to update displayed filename
-    function updateFileName() {
-      if (fileInput.files.length > 0) {
-        fileNameElem.textContent = `Selected file: ${fileInput.files[0].name}`;
-      } else {
-        fileNameElem.textContent = 'No file selected';
-      }
-    }
-
-    // Click to open file dialog
-    clickSelect.addEventListener('click', () => fileInput.click());
-
-    // Update filename when user selects a file via click
-    fileInput.addEventListener('change', updateFileName);
-
-    // Drag & drop events
-    dropZone.addEventListener('dragover', e => {
-      e.preventDefault();
-      dropZone.classList.add('dragover');
-    });
-    dropZone.addEventListener('dragleave', e => {
-      dropZone.classList.remove('dragover');
-    });
-    dropZone.addEventListener('drop', e => {
-      e.preventDefault();
-      dropZone.classList.remove('dragover');
-      if (e.dataTransfer.files.length > 0) {
-        fileInput.files = e.dataTransfer.files;
-        updateFileName();
-      }
-    });
-
-    // Show progress bar on form submit and upload file via XMLHttpRequest
-    form.addEventListener('submit', e => {
-      e.preventDefault();
-      if (!fileInput.files.length) {
-        alert('Please select a file to convert.');
-        return;
-      }
-      if (!document.getElementById('conversion-type').value) {
-        alert('Please select a conversion type.');
-        return;
-      }
-
-      const formData = new FormData(form);
-      const xhr = new XMLHttpRequest();
-
-      xhr.open('POST', form.action, true);
-
-      xhr.upload.onprogress = e => {
-        if (e.lengthComputable) {
-          progressContainer.style.display = 'block';
-          const percentComplete = (e.loaded / e.total) * 100;
-          progressBar.style.width = percentComplete + '%';
-        }
-      };
-
-      xhr.onload = () => {
-        if (xhr.status === 200) {
-          // Trigger download of converted file
-          const disposition = xhr.getResponseHeader('Content-Disposition');
-          let filename = "converted-file";
-          if (disposition && disposition.indexOf('filename=') !== -1) {
-            filename = disposition.split('filename=')[1].replace(/['"]/g, '');
-          }
-          const blob = new Blob([xhr.response], { type: xhr.getResponseHeader('Content-Type') });
-          const link = document.createElement('a');
-          link.href = window.URL.createObjectURL(blob);
-          link.download = filename;
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-
-          // Reset form and progress bar
-          form.reset();
-          progressBar.style.width = '0%';
-          progressContainer.style.display = 'none';
-          updateFileName(); // Reset filename display
-
-          // Reload page to update download history (or use AJAX to update dynamically)
-          window.location.reload();
-        } else {
-          alert('Conversion failed. Please try again.');
-          progressBar.style.width = '0%';
-          progressContainer.style.display = 'none';
-        }
-      };
-
-      xhr.responseType = 'blob';
-      xhr.send(formData);
-    });
-
-    // Initialize filename display on page load
-    updateFileName();
+    const dropZone=document.getElementById("drop-zone"),fileInput=document.getElementById("file-input"),clickSelect=document.getElementById("click-select"),form=document.getElementById("convert-form"),progressContainer=document.getElementById("progress-container"),progressBar=document.getElementById("progress-bar"),fileNameElem=document.getElementById("file-name");function updateFileName(){fileInput.files.length>0?fileNameElem.textContent=`Selected file: ${fileInput.files[0].name}`:fileNameElem.textContent="No file selected"}clickSelect.addEventListener("click",()=>fileInput.click()),fileInput.addEventListener("change",updateFileName),dropZone.addEventListener("dragover",e=>{e.preventDefault(),dropZone.classList.add("dragover")}),dropZone.addEventListener("dragleave",e=>{dropZone.classList.remove("dragover")}),dropZone.addEventListener("drop",e=>{e.preventDefault(),dropZone.classList.remove("dragover"),e.dataTransfer.files.length>0&&(fileInput.files=e.dataTransfer.files,updateFileName())}),form.addEventListener("submit",e=>{if(e.preventDefault(),!fileInput.files.length){alert("Please select a file to convert.");return}if(!document.getElementById("conversion-type").value){alert("Please select a conversion type.");return}let t=new FormData(form),n=new XMLHttpRequest;n.open("POST",form.action,!0),n.upload.onprogress=e=>{if(e.lengthComputable){progressContainer.style.display="block";let t=e.loaded/e.total*100;progressBar.style.width=t+"%"}},n.onload=()=>{if(200===n.status){let e=n.getResponseHeader("Content-Disposition"),t="converted-file";e&&-1!==e.indexOf("filename=")&&(t=e.split("filename=")[1].replace(/['"]/g,""));let l=new Blob([n.response],{type:n.getResponseHeader("Content-Type")}),r=document.createElement("a");r.href=window.URL.createObjectURL(l),r.download=t,document.body.appendChild(r),r.click(),document.body.removeChild(r),form.reset(),progressBar.style.width="0%",progressContainer.style.display="none",updateFileName(),window.location.reload()}else alert("Conversion failed. Please try again."),progressBar.style.width="0%",progressContainer.style.display="none"},n.responseType="blob",n.send(t)}),updateFileName();
   </script>
+<section style="margin-top: 40px; text-align: center; background: white; padding: 30px; border-radius: 8px; max-width: 600px; margin-left: auto; margin-right: auto;">
+  <h2>Why Thousands Trust Conversions.lol</h2>
+  <ul style="list-style:none; padding:0; font-size: 18px; color: #222; line-height: 1.6;">
+    <li>✅ 100% Free – No hidden fees</li>
+    <li>✅ Fast & Secure – Files deleted automatically</li>
+    <li>✅ Works on Mobile, Tablet, and Desktop</li>
+  </ul>
+</section>
+
+<section style="margin-top: 40px; background: white; padding: 30px; border-radius: 8px; max-width: 600px; margin-left: auto; margin-right: auto; text-align: center;">
+  <h2>Frequently Asked Questions</h2>
+
+  <h3>Is my file safe?</h3>
+  <p>Yes! Files are processed securely and deleted automatically after conversion.</p>
+
+  <h3>Do I need to sign up?</h3>
+  <p>No signup required – convert files instantly.</p>
+
+  <h3>What formats are supported?</h3>
+  <p>JPG, PNG, PDF, Word, TXT, and more.</p>
+</section>
+
+
 <footer style="text-align:center; margin-top:40px; padding:20px; border-top:1px solid #ddd; font-size: 14px; color: #666;">
   <p>Explore our helpful blog for file conversion tips:</p>
   <p>
-    <a href="/blog/pdf-to-word.html">How to Convert PDF to Word Online</a> | 
-    <a href="/blog/jpg-to-png.html">How to Convert JPG to PNG Easily</a> | 
-    <a href="/blog/txt-to-pdf.html">How to Convert TXT to PDF Fast</a>
+    <a href="{{ url_for('blog_pdf_to_word') }}">How to Convert PDF to Word Online</a> | <a href="{{ url_for('blog_jpg_to_png') }}">How to Convert JPG to PNG Easily</a> | <a href="{{ url_for('blog_txt_to_pdf') }}">How to Convert TXT to PDF Fast</a>
   </p>
 </footer>
 </body>

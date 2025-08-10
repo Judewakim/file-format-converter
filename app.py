@@ -94,6 +94,20 @@ def convert_file():
 
     return send_file(output_path, as_attachment=True)
 
+# User feedback form handler
+@app.route('/submit-feedback', methods=['POST'])
+def submit_feedback():
+    feedback = request.form.get('feedback', '').strip()
+    if feedback:
+        timestamp = datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')
+        try:
+            with open('feedback.txt', 'a', encoding='utf-8') as f:
+                f.write(f"[{timestamp}] {feedback}\n\n")
+        except Exception as e:
+            app.logger.error(f"Error saving feedback: {e}")
+        return render_template("index.html", history=download_history, feedback_message="Thank you for your feedback!")
+    return redirect(url_for('index'))
+
 # Explicit routes for blog posts
 @app.route('/blog/pdf-to-word.html')
 def blog_pdf_to_word():
@@ -106,6 +120,19 @@ def blog_jpg_to_png():
 @app.route('/blog/txt-to-pdf.html')
 def blog_txt_to_pdf():
     return render_template('blog/txt-to-pdf.html')
+
+# Add browser caching
+@app.after_request
+def add_cache_control(response):
+    if request.path.startswith('/static/'):
+        response.headers['Cache-Control'] = 'public, max-age=2592000'
+    else:
+        response.headers['Cache-Control'] = 'public, max-age=300'
+    return response
+
+@app.errorhandler(404)
+def page_not_found(e):
+    return render_template('404.html'), 404
 
 if __name__ == "__main__":
     app.run(debug=True)
