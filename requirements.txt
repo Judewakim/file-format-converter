@@ -21,6 +21,7 @@ lxml==6.0.0
 MarkupSafe==3.0.2
 packaging==25.0
 pillow==11.3.0
+psycopg2-binary==2.9.9
 pyasn1==0.6.1
 pycparser==2.22
 PyJWT==2.10.1
@@ -35,6 +36,7 @@ s3transfer==0.13.1
 six==1.17.0
 stripe==12.4.0
 types-fpdf2==2.8.3.20250809
+types-jmespath==1.0.2.20250809
 types-requests==2.32.4.20250809
 typing_extensions==4.14.1
 urllib3==2.5.0

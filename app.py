@@ -13,10 +13,10 @@ import jwt
 import stripe
 from jwt.algorithms import RSAAlgorithm
 from functools import wraps
-import sqlite3
+
 from stripe_db import (
     get_subscription, save_subscription, has_active_subscription,
-    create_or_update_user, update_subscription_status, DB_PATH, init_db
+    create_or_update_user, update_subscription_status, init_db
 )
 
 init_db()
@@ -418,9 +418,10 @@ def stripe_webhook():
 
                 # If no user_id in metadata, try to find by stripe_customer_id
                 if not user_id and customer_id:
-                    with sqlite3.connect(DB_PATH) as conn:
+                    from stripe_db import get_db_connection
+                    with get_db_connection() as conn:
                         c = conn.cursor()
-                        c.execute("SELECT user_id FROM subscriptions WHERE stripe_customer_id = ?", (customer_id,))
+                        c.execute("SELECT user_id FROM subscriptions WHERE stripe_customer_id = %s", (customer_id,))
                         row = c.fetchone()
                         if row:
                             user_id = row[0]
@@ -459,9 +460,10 @@ def stripe_webhook():
             # find application user_id by stripe_customer_id
             user_id = None
             if customer_id:
-                with sqlite3.connect(DB_PATH) as conn:
+                from stripe_db import get_db_connection
+                with get_db_connection() as conn:
                     c = conn.cursor()
-                    c.execute("SELECT user_id FROM subscriptions WHERE stripe_customer_id = ?", (customer_id,))
+                    c.execute("SELECT user_id FROM subscriptions WHERE stripe_customer_id = %s", (customer_id,))
                     row = c.fetchone()
                     if row:
                         user_id = row[0]
@@ -494,9 +496,10 @@ def stripe_webhook():
 
                     user_id = None
                     if customer_id:
-                        with sqlite3.connect(DB_PATH) as conn:
+                        from stripe_db import get_db_connection
+                        with get_db_connection() as conn:
                             c = conn.cursor()
-                            c.execute("SELECT user_id FROM subscriptions WHERE stripe_customer_id = ?", (customer_id,))
+                            c.execute("SELECT user_id FROM subscriptions WHERE stripe_customer_id = %s", (customer_id,))
                             row = c.fetchone()
                             if row:
                                 user_id = row[0]
@@ -519,9 +522,10 @@ def stripe_webhook():
                     status = sub.get('status')
                     user_id = None
                     if customer_id:
-                        with sqlite3.connect(DB_PATH) as conn:
+                        from stripe_db import get_db_connection
+                        with get_db_connection() as conn:
                             c = conn.cursor()
-                            c.execute("SELECT user_id FROM subscriptions WHERE stripe_customer_id = ?", (customer_id,))
+                            c.execute("SELECT user_id FROM subscriptions WHERE stripe_customer_id = %s", (customer_id,))
                             row = c.fetchone()
                             if row:
                                 user_id = row[0]
@@ -596,4 +600,5 @@ def purchase_cancel():
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    # Development only - use gunicorn in production
+    app.run(debug=True, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
