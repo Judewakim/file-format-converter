@@ -37,7 +37,6 @@
     .logout-btn:hover {
       background-color: #005fa3;
     }
-    /* New button styles */
     .back-home-btn {
       position: fixed;
       top: 16px;
@@ -71,12 +70,17 @@
 
   <section>
     <h2>Billing Info</h2>
-    <p>Your billing information is currently not available.</p>
-    <!-- Replace above with real billing info when ready -->
+
+    {% if subscription_active %}
+      <p>Your subscription is <strong> {{ subscription_status }}</strong>. <br>Thank you for subscribing!</p>
+    {% else %}
+      <p>You currently do not have an active subscription.</p>
+      <p><a href="{{ url_for('purchase') }}">Subscribe now</a> to unlock premium features!</p>
+    {% endif %}
+
     <br>
-    <!-- Subscription info placeholder -->
     <h3>Subscription Model</h3>
-    <p>Currently supporting Pay-As-You-Go and Subscription plans. <br> Your current subscription details will appear here.</p>
+    <p>Currently supporting monthly subscription plans.</p>
   </section>
 
   <a href="{{ url_for('logout') }}" class="logout-btn">Logout</a>

@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Subscribe - Text Converter</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 600px;
+      margin: 40px auto;
+      padding: 0 20px;
+      background: #f9f9f9;
+      color: #333;
+    }
+    h1 {
+      border-bottom: 2px solid #007acc;
+      padding-bottom: 10px;
+      margin-bottom: 30px;
+    }
+    label {
+      font-weight: bold;
+      display: block;
+      margin-bottom: 8px;
+      margin-top: 20px;
+    }
+    select, button {
+      font-size: 18px;
+      padding: 12px 20px;
+      margin-bottom: 20px;
+      width: 100%;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+    button {
+      color: white;
+      background-color: #007acc;
+      border: none;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+    button:hover {
+      background-color: #005fa3;
+    }
+    #payment-element {
+      padding: 12px;
+      background: white;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      margin-bottom: 20px;
+    }
+    #payment-message {
+      color: green;
+      margin-top: 20px;
+      font-weight: bold;
+    }
+    #error-message {
+      color: red;
+      margin-top: 20px;
+      font-weight: bold;
+    }
+    .back-home-btn {
+      display: inline-block;
+      margin-bottom: 20px;
+      color: #007acc;
+      text-decoration: none;
+      font-weight: bold;
+    }
+    .back-home-btn:hover {
+      text-decoration: underline;
+    }
+
+    .note-box {
+      margin: 20px 0;
+      padding: 12px;
+      background: #eef6fb;
+      border-left: 4px solid #007acc;
+      font-size: 14px;
+    }
+
+    .loader { display:none; margin-top:10px; }
+  </style>
+</head>
+<body>
+  <a href="{{ url_for('account') }}" class="back-home-btn">← Back to Account</a>
+  <h1>Purchase Subscription</h1>
+
+  <div class="note-box">
+    <strong>Security Note:</strong><br>
+    Your card will be stored securely and used for recurring billing by a third party payment processor and is PCI compliant. 
+  </div>
+
+  <div>
+    <h3>Monthly Subscription - $9.99/month</h3>
+    <p>Get unlimited file conversions with our premium subscription.</p>
+    
+    <button id="subscribe-btn" type="button">Subscribe Now</button>
+    <div class="loader" id="loader">Processing… please wait.</div>
+  </div>
+
+  <div id="error-message"></div>
+
+  <script>
+    const subscribeBtn = document.getElementById('subscribe-btn');
+    const loader = document.getElementById('loader');
+    const errorMessage = document.getElementById('error-message');
+
+    function showLoader(on) {
+      loader.style.display = on ? 'block' : 'none';
+      subscribeBtn.disabled = on;
+    }
+
+    function showError(msg) {
+      errorMessage.textContent = msg || '';
+    }
+
+    subscribeBtn.addEventListener('click', async () => {
+      showLoader(true);
+      showError('');
+
+      try {
+        const response = await fetch('/create-checkout-session', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        });
+
+        const data = await response.json();
+        
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to create checkout session');
+        }
+
+        // Redirect to Stripe Checkout
+        window.location.href = data.checkout_url;
+      } catch (err) {
+        console.error(err);
+        showError(err.message || 'Unable to start checkout process.');
+        showLoader(false);
+      }
+    });
+  </script>
+</body>
+</html>

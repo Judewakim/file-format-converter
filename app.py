@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, send_file, redirect, url_for, after_this_request, session, abort
+from flask import Flask, render_template, request, send_file, redirect, url_for, after_this_request, session, abort, jsonify
 import os
 import secrets
 from werkzeug.utils import secure_filename
@@ -10,8 +10,17 @@ import datetime
 import requests
 import urllib.parse
 import jwt
+import stripe
 from jwt.algorithms import RSAAlgorithm
 from functools import wraps
+import sqlite3
+from stripe_db import (
+    get_subscription, save_subscription, has_active_subscription,
+    create_or_update_user, update_subscription_status, DB_PATH, init_db
+)
+
+init_db()
+
 from dotenv import load_dotenv
 
 if os.getenv("FLASK_ENV") != "production":
@@ -19,6 +28,15 @@ if os.getenv("FLASK_ENV") != "production":
 
 app = Flask(__name__)
 app.secret_key = secrets.token_hex(32)
+
+# Initialize Stripe with your secret key (set as env var)
+stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
+
+# Your webhook secret from Stripe dashboard (env var)
+STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET")
+
+# Your domain for redirect URLs (set in env or default)
+YOUR_DOMAIN = os.getenv("YOUR_DOMAIN") or "http://localhost:5000"
 
 # -------------------------------
 # Cognito Configuration (from .env)
@@ -76,7 +94,7 @@ UPLOAD_FOLDER = "uploads"
 CONVERTED_FOLDER = "converted"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(CONVERTED_FOLDER, exist_ok=True)
-download_history = []
+download_history: list[dict[str, str]] = []
 
 # -------------------------------
 # Auth Routes
@@ -126,12 +144,6 @@ def logout():
         f"&logout_uri={urllib.parse.quote(COGNITO_LOGOUT_REDIRECT)}"
     )
     return redirect(logout_url)
-
-@app.route("/account")
-@login_required
-def account():
-    user_info = verify_token(session["id_token"])
-    return render_template("account.html", user=user_info)
 
 # -------------------------------
 # Main App Routes
@@ -246,6 +258,342 @@ def add_cache_control(response):
 @app.errorhandler(404)
 def page_not_found(e):
     return render_template('404.html'), 404
+
+# -------------------------------
+# Stripe Routes
+# -------------------------------
+
+@app.route("/account")
+@login_required
+def account():
+    user_info = verify_token(session["id_token"])
+    user_id = user_info.get("sub")
+
+    # Get subscription from DB
+    user_stripe = get_subscription(user_id)
+    subscription_status = user_stripe['subscription_status'] if user_stripe else 'inactive'
+
+    # Attempt to sync with Stripe if we have a customer/subscription ID
+    if user_stripe and user_stripe.get("stripe_customer_id"):
+        try:
+            stripe_subs = stripe.Subscription.list(customer=user_stripe["stripe_customer_id"], limit=1)
+            if stripe_subs.data:
+                stripe_sub = stripe_subs.data[0]
+                subscription_status = stripe_sub.status
+                # Keep DB in sync if changed
+                update_subscription_status(user_id, subscription_status)
+        except Exception as e:
+            app.logger.warning(f"Stripe API sync failed for user {user_id}: {e}")
+
+    subscription_active = subscription_status in ["active", "trialing"]
+
+    return render_template(
+        "account.html",
+        user=user_info,
+        subscription_active=subscription_active,
+        subscription_status=subscription_status,
+        stripe_publishable_key=os.getenv("STRIPE_PUBLISHABLE_KEY"),
+        stripe_price_subscription=os.getenv("STRIPE_PRICE_SUBSCRIPTION_MONTHLY"),
+    )
+
+@app.route("/create-checkout-session", methods=["POST"])
+@login_required
+def create_checkout_session():
+    user_info = verify_token(session["id_token"])
+    user_id = user_info["sub"]
+    
+    try:
+        # Create or get Stripe customer
+        user_sub = get_subscription(user_id)
+        if user_sub and user_sub.get("stripe_customer_id"):
+            customer_id = user_sub["stripe_customer_id"]
+        else:
+            customer = stripe.Customer.create(
+                email=user_info.get("email"),
+                metadata={"user_id": user_id}
+            )
+            customer_id = customer.id
+            create_or_update_user(user_id, stripe_customer_id=customer_id)
+        
+        session_id = stripe.checkout.Session.create(
+            customer=customer_id,
+            line_items=[{
+                "price": os.getenv("STRIPE_PRICE_SUBSCRIPTION_MONTHLY"),
+                "quantity": 1,
+            }],
+            mode="subscription",
+            success_url=url_for('purchase_success', _external=True),
+            cancel_url=url_for('purchase_cancel', _external=True),
+            metadata={"user_id": user_id}
+        )
+
+    # user_info = verify_token(session["id_token"])
+    # user_id = user_info["sub"]
+
+    # data = request.json
+    # product_type = data.get("product_type")  # should be 'subscription' only now
+    # price_id = data.get("price_id")
+    # quantity = data.get("quantity", 1)
+
+    # if product_type != "subscription" or not price_id:
+    #     return jsonify({"error": "Invalid purchase info"}), 400
+
+    # try:
+    #     # Create or retrieve Stripe customer
+    #     user = get_subscription(user_id)
+    #     if user and user["stripe_customer_id"]:
+    #         customer_id = user["stripe_customer_id"]
+    #     else:
+    #         stripe_customer = stripe.Customer.create(
+    #             email=user_info.get("email"),
+    #             metadata={"user_id": user_id}
+    #         )
+    #         customer_id = stripe_customer.id
+    #         create_or_update_user(user_id, stripe_customer_id=customer_id)
+
+    #     # Create Stripe Checkout session for subscription only
+    #     checkout_session = stripe.checkout.Session.create(
+    #         customer=customer_id,
+    #         payment_method_types=["card"],
+    #         line_items=[{
+    #             "price": price_id,
+    #             "quantity": quantity,
+    #         }],
+    #         mode="subscription",
+    #         success_url=url_for('purchase_success', _external=True),
+    #         cancel_url=url_for('purchase_cancel', _external=True),
+    #         metadata={"user_id": user_id, "product_type": product_type, "quantity": quantity}
+    #     )
+
+    #     return jsonify({"checkout_url": checkout_session.url})
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    
+    return jsonify({"checkout_url": session_id.url})
+
+@app.route('/stripe/webhook', methods=['POST'])
+def stripe_webhook():
+    payload = request.data
+    sig_header = request.headers.get('Stripe-Signature')
+
+    try:
+        event = stripe.Webhook.construct_event(payload, sig_header, STRIPE_WEBHOOK_SECRET)
+    except ValueError:
+        # Invalid payload
+        app.logger.warning("Invalid Stripe webhook payload")
+        abort(400)
+    except stripe.error.SignatureVerificationError:
+        # Invalid signature
+        app.logger.warning("Invalid Stripe webhook signature")
+        abort(400)
+
+    event_type = event.get('type')
+    data_object = event.get('data', {}).get('object', {})
+    
+    app.logger.info(f"Received webhook event: {event_type}")
+
+    try:
+        # 1) Checkout Session completed (usually triggered when user completes Checkout)
+        if event_type == 'checkout.session.completed':
+            session_obj = data_object
+            mode = session_obj.get('mode')
+            metadata = session_obj.get('metadata', {}) or {}
+
+            # Prefer user_id from metadata (you set this when creating the session)
+            user_id = metadata.get('user_id')
+            subscription_id = session_obj.get('subscription')  # subscription id (if mode == subscription)
+            customer_id = session_obj.get('customer')
+
+            if mode == 'subscription' and subscription_id:
+                # fetch subscription details from Stripe (status, current_period_end, etc.)
+                try:
+                    subscription = stripe.Subscription.retrieve(subscription_id)
+                except Exception as e:
+                    app.logger.warning(f"Failed to retrieve subscription {subscription_id}: {e}")
+                    subscription = None
+
+                status = subscription.status if subscription else None
+                current_period_end = getattr(subscription, "current_period_end", None) if subscription else None
+
+                # If no user_id in metadata, try to find by stripe_customer_id
+                if not user_id and customer_id:
+                    with sqlite3.connect(DB_PATH) as conn:
+                        c = conn.cursor()
+                        c.execute("SELECT user_id FROM subscriptions WHERE stripe_customer_id = ?", (customer_id,))
+                        row = c.fetchone()
+                        if row:
+                            user_id = row[0]
+
+                # If we found a user_id, persist mapping and subscription info
+                if user_id:
+                    # ensure stripe_customer_id stored for this user
+                    if customer_id:
+                        try:
+                            create_or_update_user(user_id, stripe_customer_id=customer_id)
+                        except Exception as e:
+                            app.logger.warning(f"create_or_update_user failed for {user_id}: {e}")
+
+                    # save_subscription keeps subscription id, status and current_period_end in DB
+                    try:
+                        save_subscription(user_id, customer_id, subscription_id, status, current_period_end)
+                    except Exception as e:
+                        app.logger.warning(f"save_subscription failed for {user_id}: {e}")
+
+                    # Also update subscription_status field
+                    try:
+                        update_subscription_status(user_id, status)
+                    except Exception as e:
+                        app.logger.warning(f"update_subscription_status failed for {user_id}: {e}")
+
+                    app.logger.info(f"checkout.session.completed handled for user {user_id}, subscription {subscription_id}, status {status}")
+
+        # 2) Subscription lifecycle events (created/updated/deleted)
+        elif event_type in ('customer.subscription.created', 'customer.subscription.updated', 'customer.subscription.deleted'):
+            subscription = data_object
+            customer_id = subscription.get('customer')
+            subscription_id = subscription.get('id')
+            status = subscription.get('status')
+            current_period_end = subscription.get('current_period_end')
+
+            # find application user_id by stripe_customer_id
+            user_id = None
+            if customer_id:
+                with sqlite3.connect(DB_PATH) as conn:
+                    c = conn.cursor()
+                    c.execute("SELECT user_id FROM subscriptions WHERE stripe_customer_id = ?", (customer_id,))
+                    row = c.fetchone()
+                    if row:
+                        user_id = row[0]
+
+            if user_id:
+                # persist/update sub info in DB
+                try:
+                    save_subscription(user_id, customer_id, subscription_id, status, current_period_end)
+                except Exception as e:
+                    app.logger.warning(f"save_subscription failed for {user_id}: {e}")
+
+                try:
+                    update_subscription_status(user_id, status)
+                except Exception as e:
+                    app.logger.warning(f"update_subscription_status failed for {user_id}: {e}")
+
+                app.logger.info(f"Handled {event_type} for user {user_id}, status {status}")
+
+        # 3) Optional: invoice.payment_succeeded (useful to mark active after payment)
+        elif event_type == 'invoice.payment_succeeded':
+            invoice = data_object
+            subscription_id = invoice.get('subscription')
+            # find customer_id and user_id if possible and mark active
+            if subscription_id:
+                try:
+                    sub = stripe.Subscription.retrieve(subscription_id)
+                    customer_id = sub.get('customer')
+                    status = sub.get('status')
+                    current_period_end = sub.get('current_period_end')
+
+                    user_id = None
+                    if customer_id:
+                        with sqlite3.connect(DB_PATH) as conn:
+                            c = conn.cursor()
+                            c.execute("SELECT user_id FROM subscriptions WHERE stripe_customer_id = ?", (customer_id,))
+                            row = c.fetchone()
+                            if row:
+                                user_id = row[0]
+
+                    if user_id:
+                        save_subscription(user_id, customer_id, subscription_id, status, current_period_end)
+                        update_subscription_status(user_id, status)
+                        app.logger.info(f"invoice.payment_succeeded: updated user {user_id} to {status}")
+                except Exception as e:
+                    app.logger.warning(f"invoice.payment_succeeded handling failed: {e}")
+
+        # 4) Optional: invoice.payment_failed -> mark subscription inactive / notify
+        elif event_type == 'invoice.payment_failed':
+            invoice = data_object
+            subscription_id = invoice.get('subscription')
+            if subscription_id:
+                try:
+                    sub = stripe.Subscription.retrieve(subscription_id)
+                    customer_id = sub.get('customer')
+                    status = sub.get('status')
+                    user_id = None
+                    if customer_id:
+                        with sqlite3.connect(DB_PATH) as conn:
+                            c = conn.cursor()
+                            c.execute("SELECT user_id FROM subscriptions WHERE stripe_customer_id = ?", (customer_id,))
+                            row = c.fetchone()
+                            if row:
+                                user_id = row[0]
+                    if user_id:
+                        update_subscription_status(user_id, status or 'past_due')
+                        app.logger.info(f"invoice.payment_failed: set status {status} for user {user_id}")
+                except Exception as e:
+                    app.logger.warning(f"invoice.payment_failed handling failed: {e}")
+
+    except Exception as ex:
+        app.logger.exception(f"Unhandled exception in stripe_webhook: {ex}")
+        # still respond 200 to avoid repeated retries only if you decide so.
+        # but better to return 500 so Stripe retries. We return 500 here.
+        abort(500)
+
+    return jsonify({'status': 'success'})
+
+@app.route("/create-setup-intent", methods=["POST"])
+@login_required
+def create_setup_intent():
+    user_info = verify_token(session["id_token"])
+    user_id = user_info.get("sub")
+
+    data = request.get_json()
+    price_id = data.get("price_id")
+
+    if not price_id:
+        return jsonify({"error": "Missing price_id"}), 400
+
+    # Fetch subscription data from your DB (includes stripe_customer_id)
+    user_sub = get_subscription(user_id)
+
+    # Create Stripe Customer if not exists
+    if user_sub and user_sub.get("stripe_customer_id"):
+        customer_id = user_sub["stripe_customer_id"]
+    else:
+        customer = stripe.Customer.create(
+            email=user_info.get("email"),
+            metadata={"user_id": user_id}
+        )
+        customer_id = customer.id
+        # Save customer ID in your DB
+        create_or_update_user(user_id, stripe_customer_id=customer_id)
+
+    # Create SetupIntent to collect payment method for future payments
+    setup_intent = stripe.SetupIntent.create(
+        customer=customer_id,
+        payment_method_types=["card"],
+    )
+
+    return jsonify({"client_secret": setup_intent.client_secret})
+
+
+@app.route('/purchase')
+@login_required
+def purchase():
+    return render_template('purchase.html',
+                           stripe_publishable_key=os.getenv("STRIPE_PUBLISHABLE_KEY"),
+                           stripe_price_subscription=os.getenv("STRIPE_PRICE_SUBSCRIPTION_MONTHLY"))
+
+@app.route('/purchase-success')
+@login_required
+def purchase_success():
+    return render_template('purchase_success.html')
+
+@app.route('/purchase-cancel')
+@login_required
+def purchase_cancel():
+    return render_template('purchase_cancel.html')
+
+
+
 
 if __name__ == "__main__":
     app.run(debug=True)

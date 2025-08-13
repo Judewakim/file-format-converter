@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Purchase Cancelled - Text Converter</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 600px;
+      margin: 40px auto;
+      padding: 0 20px;
+      background: #f9f9f9;
+      color: #333;
+      text-align: center;
+    }
+    .cancel-box {
+      background: #f8d7da;
+      border: 1px solid #f5c6cb;
+      border-radius: 8px;
+      padding: 30px;
+      margin: 20px 0;
+    }
+    .cancel-icon {
+      font-size: 48px;
+      color: #dc3545;
+      margin-bottom: 20px;
+    }
+    .btn {
+      display: inline-block;
+      padding: 12px 24px;
+      background-color: #007acc;
+      color: white;
+      text-decoration: none;
+      border-radius: 6px;
+      font-weight: bold;
+      margin: 10px;
+    }
+    .btn:hover {
+      background-color: #005fa3;
+    }
+  </style>
+</head>
+<body>
+  <div class="cancel-box">
+    <div class="cancel-icon">❌</div>
+    <h1>Purchase Cancelled</h1>
+    <p>Your subscription purchase was cancelled. No payment has been processed.</p>
+    <p>You can try again anytime or continue using our free service.</p>
+    
+    <a href="{{ url_for('purchase') }}" class="btn">Try Again</a>
+    <a href="{{ url_for('index') }}" class="btn">Continue Free</a>
+  </div>
+</body>
+</html>

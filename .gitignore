@@ -11,5 +11,10 @@ __pycache__/
 # Ignore other common files
 instance/
 *.sqlite3
+subscriptions.db
 uploads/
 converted/
+feedback.txt
+venv/
+.vscode/
+*.log
