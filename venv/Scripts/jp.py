@@ -1,4 +1,4 @@
-#!C:\Users\wjude\aws-projects\file-format-converter\venv\Scripts\python.exe
+#!c:\Users\wjude\aws-projects\file-format-converter\file-format-converter\venv\Scripts\python.exe
 
 import sys
 import json

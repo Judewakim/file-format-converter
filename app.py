@@ -19,6 +19,7 @@ from stripe_db import (
     create_or_update_user, update_subscription_status, init_db
 )
 
+# Initialize database now that environment is loaded
 init_db()
 
 from dotenv import load_dotenv
@@ -81,7 +82,8 @@ def login_required(f):
             return redirect(url_for("login"))
         try:
             verify_token(id_token)
-        except Exception:
+        except Exception as e:
+            print(f"Token validation failed in login_required: {e}")
             session.clear()
             return redirect(url_for("login"))
         return f(*args, **kwargs)
@@ -156,7 +158,22 @@ def index():
         except Exception as e:
             app.logger.error(f"Error deleting converted file {fname}: {e}")
 
-    return render_template("index.html", history=download_history, logged_in="id_token" in session)
+    # Check subscription status
+    has_subscription = False
+    if "id_token" in session:
+        try:
+            user_info = verify_token(session["id_token"])
+            user_id = user_info.get("sub")
+            has_subscription = has_active_subscription(user_id)
+        except Exception as e:
+            # Token expired or invalid - clear session but don't redirect
+            print(f"Token validation failed in index: {e}")
+            session.clear()
+
+    return render_template("index.html", 
+                         history=download_history, 
+                         logged_in="id_token" in session,
+                         has_subscription=has_subscription)
 
 @app.route("/convert", methods=["POST"])
 def convert_file():
@@ -231,6 +248,18 @@ def submit_feedback():
             app.logger.error(f"Error saving feedback: {e}")
         return render_template("index.html", history=download_history, feedback_message="Thank you for your feedback!")
     return redirect(url_for('index'))
+
+@app.route("/text-convert", methods=["POST"])
+@login_required
+def text_convert():
+    user_info = verify_token(session["id_token"])
+    user_id = user_info.get("sub")
+    
+    if not has_active_subscription(user_id):
+        return jsonify({"error": "Active subscription required"}), 403
+    
+    # Placeholder for text conversion functionality
+    return jsonify({"message": "Text conversion functionality coming soon"})
 
 # Blog routes
 @app.route('/blog/pdf-to-word.html')
@@ -376,21 +405,25 @@ def create_checkout_session():
 def stripe_webhook():
     payload = request.data
     sig_header = request.headers.get('Stripe-Signature')
+    
+    print(f"Webhook received: {len(payload)} bytes")
+    print(f"Signature header: {sig_header[:50] if sig_header else 'None'}...")
 
     try:
         event = stripe.Webhook.construct_event(payload, sig_header, STRIPE_WEBHOOK_SECRET)
-    except ValueError:
-        # Invalid payload
+    except ValueError as e:
+        print(f"Invalid payload: {e}")
         app.logger.warning("Invalid Stripe webhook payload")
         abort(400)
-    except stripe.error.SignatureVerificationError:
-        # Invalid signature
+    except stripe.error.SignatureVerificationError as e:
+        print(f"Invalid signature: {e}")
         app.logger.warning("Invalid Stripe webhook signature")
         abort(400)
 
     event_type = event.get('type')
     data_object = event.get('data', {}).get('object', {})
     
+    print(f"Processing webhook event: {event_type}")
     app.logger.info(f"Received webhook event: {event_type}")
 
     try:
@@ -541,6 +574,7 @@ def stripe_webhook():
         # but better to return 500 so Stripe retries. We return 500 here.
         abort(500)
 
+    print(f"Webhook {event_type} processed successfully")
     return jsonify({'status': 'success'})
 
 @app.route("/create-setup-intent", methods=["POST"])
