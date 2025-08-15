@@ -250,7 +250,7 @@
         <div class="upgrade-cta">
           <h4>🚀 Unlock Text Conversions</h4>
           <p>Get unlimited access to language translation, text extraction (OCR), and more!</p>
-          <a href="{% if logged_in %}{{ url_for('account') }}{% else %}{{ url_for('login') }}{% endif %}">
+          <a href="{% if logged_in %}{{ url_for('purchase') }}{% else %}{{ url_for('login') }}{% endif %}">
             {% if logged_in %}Subscribe Now{% else %}Login & Subscribe{% endif %}
           </a>
         </div>
