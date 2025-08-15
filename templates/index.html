@@ -64,17 +64,23 @@
     }
     
     .text-conversions {
-      background: white;
+      background: linear-gradient(135deg, #f0f2ff 0%, #fff 100%);
       padding: 30px;
       border-radius: 8px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.2);
       position: relative;
+      border: 1px solid rgba(102, 126, 234, 0.3);
     }
     
     .text-conversions.locked {
       background: #f8f8f8;
       opacity: 0.7;
       pointer-events: none;
+    }
+    
+    .text-conversions.locked .upgrade-cta {
+      opacity: 1;
+      pointer-events: auto;
     }
     
     .text-conversions.locked::before {
@@ -86,28 +92,46 @@
     }
     
     .upgrade-cta {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 50%, #6d28d9 100%);
       color: white;
       padding: 20px;
       border-radius: 8px;
       text-align: center;
       margin-top: 20px;
+      border: 2px solid #a855f7;
+      box-shadow: 0 8px 25px rgba(139, 92, 246, 0.4), 0 0 20px rgba(139, 92, 246, 0.3);
+      animation: pulse 2s infinite;
     }
     
     .upgrade-cta a {
       color: white;
       text-decoration: none;
       font-weight: bold;
-      background: rgba(255,255,255,0.2);
-      padding: 10px 20px;
-      border-radius: 5px;
+      background: linear-gradient(135deg, #a855f7 0%, #9333ea 100%);
+      padding: 12px 24px;
+      border-radius: 8px;
       display: inline-block;
       margin-top: 10px;
-      transition: background 0.3s;
+      transition: all 0.3s ease;
+      border: 1px solid #c084fc;
+      box-shadow: 0 4px 15px rgba(168, 85, 247, 0.3);
     }
     
     .upgrade-cta a:hover {
-      background: rgba(255,255,255,0.3);
+      background: linear-gradient(135deg, #c084fc 0%, #a855f7 100%);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(168, 85, 247, 0.5);
+    }
+    
+    @keyframes pulse {
+      0% { box-shadow: 0 8px 25px rgba(139, 92, 246, 0.4), 0 0 20px rgba(139, 92, 246, 0.3); }
+      50% { box-shadow: 0 12px 35px rgba(139, 92, 246, 0.6), 0 0 30px rgba(139, 92, 246, 0.5); }
+      100% { box-shadow: 0 8px 25px rgba(139, 92, 246, 0.4), 0 0 20px rgba(139, 92, 246, 0.3); }
+    }
+    
+    /* Button consistency */
+    button {
+      width: 100%;
     }
     
     /* Responsive widths */
@@ -143,10 +167,10 @@
       <!-- File Conversions Section -->
       <div class="file-conversions {% if has_subscription %}with-subscription{% else %}no-subscription{% endif %}">
         <h3>File Conversions</h3>
-        
+        <br>
         <form id="convert-form" action="{{ url_for('convert_file') }}" method="POST" enctype="multipart/form-data">
           <div id="drop-zone" class="upload-area">
-            <p>Drag & Drop your file here or <span id="click-select" style="text-decoration: underline; cursor: pointer;">click to browse</span></p>
+            <p>Drag & Drop your file here (TXT, JPG, PDF) or <span id="click-select" style="text-decoration: underline; cursor: pointer;">click to browse</span></p>
             <input type="file" name="file" id="file-input" hidden required />
           </div>
 
@@ -168,7 +192,7 @@
         </form>
 
         <section id="history-section" style="margin-top: 30px;">
-          <h4>Recent Conversions</h4>
+          <h4>Recent File Conversions</h4>
           {% if history %}
             <ul>
               {% for item in history[-3:] %}
@@ -176,45 +200,58 @@
               {% endfor %}
             </ul>
           {% else %}
-            <p>No conversions yet.</p>
+            <p>No file conversions yet.</p>
           {% endif %}
         </section>
       </div>
 
       <!-- Text Conversions Section -->
       <div class="text-conversions {% if has_subscription %}with-subscription{% else %}no-subscription locked{% endif %}">
-        <h3>Text Conversions</h3>
+        <h3>✨ Text Conversions <span style="font-size: 12px; background: linear-gradient(135deg, #667eea 0%, #6a25af 100%); color: white; padding: 2px 8px; border-radius: 10px; margin-left: 8px;">PREMIUM</span><span style="font-size: 12px; background: linear-gradient(135deg, #faf733 0%, #af2525 100%); color: white; padding: 2px 8px; border-radius: 10px; margin-left: 8px;">AI/ML</span></h3>
         
-        <div style="margin-bottom: 20px;">
-          <label for="text-input">Enter your text:</label>
-          <textarea id="text-input" rows="6" style="width:100%; padding:10px; margin-top:5px; font-size: 14px;" placeholder="Type or paste your text here...">{{ 'Sample text for conversion preview...' if not has_subscription else '' }}</textarea>
-        </div>
-        
-        <label for="text-conversion-type">Convert to:</label>
-        <select id="text-conversion-type" style="width:100%; padding:8px; margin-top:5px;">
-          <option value="" disabled selected>-- Choose format --</option>
-          <option value="uppercase">UPPERCASE</option>
-          <option value="lowercase">lowercase</option>
-          <option value="title_case">Title Case</option>
-          <option value="reverse">Reverse Text</option>
-          <option value="word_count">Word Count</option>
-        </select>
-        
-        <button id="text-convert-btn" style="margin-top:15px; width:100%;" {% if not has_subscription %}disabled{% endif %}>
-          {% if has_subscription %}Convert Text{% else %}🔒 Requires Subscription{% endif %}
-        </button>
-        
-        <div id="text-result" style="margin-top: 20px; padding: 15px; background: #f9f9f9; border-radius: 5px; min-height: 50px; display: none;">
-          <strong>Result:</strong>
-          <div id="text-output"></div>
-        </div>
+        <form id="text-convert-form" action="{{ url_for('text_convert') }}" method="POST" enctype="multipart/form-data">
+          <div id="drop-zone" class="upload-area">
+            <p>Drag & Drop your file here (PDF, JPG, PNG, TXT) or <span id="click-select" style="text-decoration: underline; cursor: pointer;">click to browse</span></p>
+            <input type="file" name="text_file" id="text-file-input" accept=".pdf,.jpg,.jpeg,.png,.txt" hidden {% if not has_subscription %}disabled{% endif %} />
+          </div>
+
+          <p id="file-name" style="font-style: italic; margin-top: 8px; color: #555;">No file selected</p>
+
+          <label for="text-conversion-type">Select Conversion Type:</label>
+          <select name="text_conversion_type" id="text-conversion-type" required {% if not has_subscription %}disabled{% endif %}>
+            <option value="" disabled selected>-- Choose conversion --</option>
+            <option value="translate_spanish">🇪🇸 Translate to Spanish</option>
+            <option value="translate_french">🇫🇷 Translate to French</option>
+            <option value="translate_german">🇩🇪 Translate to German</option>
+            <option value="translate_chinese">🇨🇳 Translate to Chinese</option>
+            <option value="ocr_extract">📄 Extract Text (OCR)</option>
+            <!-- <option value="summarize">📝 Summarize Text</option> -->
+          </select>
+
+          <div id="text-progress-container" style="display:none; margin-top:10px;">
+            <div id="text-progress-bar"></div>
+          </div>
+
+          <button type="submit" style="margin-top:10px;">
+            {% if has_subscription %}Convert Now{% else %}🔒 Requires Subscription{% endif %}
+          </button>
+        </form>
+
+        <section id="history-section" style="margin-top: 30px;">
+          <h4>Recent Text Conversions</h4>
+          {% if has_subscription %}
+            <p>No text conversions yet.</p>
+          {% else %}
+            <p style="color: #888;">Subscribe to see your conversion history.</p>
+          {% endif %}
+        </section>
         
         {% if not has_subscription %}
         <div class="upgrade-cta">
           <h4>🚀 Unlock Text Conversions</h4>
           <p>Get unlimited access to language translation, text extraction (OCR), and more!</p>
-          <a href="{% if logged_in %}{{ url_for('purchase') }}{% else %}{{ url_for('login') }}{% endif %}">
-            {% if logged_in %}Upgrade Now{% else %}Login & Subscribe{% endif %}
+          <a href="{% if logged_in %}{{ url_for('account') }}{% else %}{{ url_for('login') }}{% endif %}">
+            {% if logged_in %}Subscribe Now{% else %}Login & Subscribe{% endif %}
           </a>
         </div>
         {% endif %}
@@ -237,62 +274,29 @@
   </div>
 
   <script>
+    // File conversions functionality
     const dropZone=document.getElementById("drop-zone"),fileInput=document.getElementById("file-input"),clickSelect=document.getElementById("click-select"),form=document.getElementById("convert-form"),progressContainer=document.getElementById("progress-container"),progressBar=document.getElementById("progress-bar"),fileNameElem=document.getElementById("file-name");function updateFileName(){fileInput.files.length>0?fileNameElem.textContent=`Selected file: ${fileInput.files[0].name}`:fileNameElem.textContent="No file selected"}clickSelect.addEventListener("click",()=>fileInput.click()),fileInput.addEventListener("change",updateFileName),dropZone.addEventListener("dragover",e=>{e.preventDefault(),dropZone.classList.add("dragover")}),dropZone.addEventListener("dragleave",e=>{dropZone.classList.remove("dragover")}),dropZone.addEventListener("drop",e=>{e.preventDefault(),dropZone.classList.remove("dragover"),e.dataTransfer.files.length>0&&(fileInput.files=e.dataTransfer.files,updateFileName())}),form.addEventListener("submit",e=>{if(e.preventDefault(),!fileInput.files.length){alert("Please select a file to convert.");return}if(!document.getElementById("conversion-type").value){alert("Please select a conversion type.");return}let t=new FormData(form),n=new XMLHttpRequest;n.open("POST",form.action,!0),n.upload.onprogress=e=>{if(e.lengthComputable){progressContainer.style.display="block";let t=e.loaded/e.total*100;progressBar.style.width=t+"%"}},n.onload=()=>{if(200===n.status){let e=n.getResponseHeader("Content-Disposition"),t="converted-file";e&&-1!==e.indexOf("filename=")&&(t=e.split("filename=")[1].replace(/['"]/g,""));let l=new Blob([n.response],{type:n.getResponseHeader("Content-Type")}),r=document.createElement("a");r.href=window.URL.createObjectURL(l),r.download=t,document.body.appendChild(r),r.click(),document.body.removeChild(r),form.reset(),progressBar.style.width="0%",progressContainer.style.display="none",updateFileName(),window.location.reload()}else alert("Conversion failed. Please try again."),progressBar.style.width="0%",progressContainer.style.display="none"},n.responseType="blob",n.send(t)}),updateFileName();
     
     // Text conversion functionality
-    const textConvertBtn = document.getElementById('text-convert-btn');
-    const textInput = document.getElementById('text-input');
-    const textConversionType = document.getElementById('text-conversion-type');
-    const textResult = document.getElementById('text-result');
-    const textOutput = document.getElementById('text-output');
-    
-    if (textConvertBtn && !textConvertBtn.disabled) {
-      textConvertBtn.addEventListener('click', function() {
-        const text = textInput.value.trim();
-        const conversionType = textConversionType.value;
-        
-        if (!text) {
-          alert('Please enter some text to convert.');
-          return;
-        }
-        
-        if (!conversionType) {
-          alert('Please select a conversion type.');
-          return;
-        }
-        
-        let result = '';
-        switch(conversionType) {
-          case 'uppercase':
-            result = text.toUpperCase();
-            break;
-          case 'lowercase':
-            result = text.toLowerCase();
-            break;
-          case 'title_case':
-            result = text.replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase());
-            break;
-          case 'reverse':
-            result = text.split('').reverse().join('');
-            break;
-          case 'word_count':
-            const words = text.split(/\s+/).filter(word => word.length > 0);
-            result = `Word count: ${words.length}<br>Character count: ${text.length}<br>Character count (no spaces): ${text.replace(/\s/g, '').length}`;
-            break;
-        }
-        
-        textOutput.innerHTML = result;
-        textResult.style.display = 'block';
-      });
-    }
+    const textDropZone=document.getElementById("text-drop-zone"),textFileInput=document.getElementById("text-file-input"),textClickSelect=document.getElementById("text-click-select"),textForm=document.getElementById("text-convert-form"),textProgressContainer=document.getElementById("text-progress-container"),textProgressBar=document.getElementById("text-progress-bar"),textFileNameElem=document.getElementById("text-file-name");function updateTextFileName(){textFileInput.files.length>0?textFileNameElem.textContent=`Selected file: ${textFileInput.files[0].name}`:textFileNameElem.textContent="No file selected"}if(textClickSelect){textClickSelect.addEventListener("click",()=>textFileInput.click()),textFileInput.addEventListener("change",updateTextFileName),textDropZone.addEventListener("dragover",e=>{e.preventDefault(),textDropZone.classList.add("dragover")}),textDropZone.addEventListener("dragleave",e=>{textDropZone.classList.remove("dragover")}),textDropZone.addEventListener("drop",e=>{e.preventDefault(),textDropZone.classList.remove("dragover"),e.dataTransfer.files.length>0&&(textFileInput.files=e.dataTransfer.files,updateTextFileName())}),textForm.addEventListener("submit",e=>{if(e.preventDefault(),!textFileInput.files.length){alert("Please select a file to convert.");return}if(!document.getElementById("text-conversion-type").value){alert("Please select a conversion type.");return}let t=new FormData(textForm),n=new XMLHttpRequest;n.open("POST",textForm.action,!0),n.upload.onprogress=e=>{if(e.lengthComputable){textProgressContainer.style.display="block";let t=e.loaded/e.total*100;textProgressBar.style.width=t+"%"}},n.onload=()=>{if(200===n.status){alert("Text conversion completed!"),textForm.reset(),textProgressBar.style.width="0%",textProgressContainer.style.display="none",updateTextFileName()}else alert("Text conversion failed. Please try again."),textProgressBar.style.width="0%",textProgressContainer.style.display="none"},n.send(t)}),updateTextFileName()}ument.getElementById("text-progress-container"),textProgressBar=document.getElementById("text-progress-bar"),textFileNameElem=document.getElementById("text-file-name");function updateTextFileName(){textFileInput&&textFileInput.files.length>0?textFileNameElem.textContent=`Selected file: ${textFileInput.files[0].name}`:textFileNameElem.textContent="No file selected"}if(textClickSelect&&textFileInput){textClickSelect.addEventListener("click",()=>textFileInput.click()),textFileInput.addEventListener("change",updateTextFileName),textDropZone.addEventListener("dragover",e=>{e.preventDefault(),textDropZone.classList.add("dragover")}),textDropZone.addEventListener("dragleave",e=>{textDropZone.classList.remove("dragover")}),textDropZone.addEventListener("drop",e=>{e.preventDefault(),textDropZone.classList.remove("dragover"),e.dataTransfer.files.length>0&&(textFileInput.files=e.dataTransfer.files,updateTextFileName())}),textForm.addEventListener("submit",e=>{if(e.preventDefault(),!textFileInput.files.length){alert("Please select a file to convert.");return}if(!document.getElementById("text-conversion-type").value){alert("Please select a conversion type.");return}let t=new FormData(textForm),n=new XMLHttpRequest;n.open("POST",textForm.action,!0),n.upload.onprogress=e=>{if(e.lengthComputable){textProgressContainer.style.display="block";let t=e.loaded/e.total*100;textProgressBar.style.width=t+"%"}},n.onload=()=>{if(200===n.status){let e=n.getResponseHeader("Content-Disposition"),t="converted-text-file";e&&-1!==e.indexOf("filename=")&&(t=e.split("filename=")[1].replace(/['"]/g,""));let l=new Blob([n.response],{type:n.getResponseHeader("Content-Type")}),r=document.createElement("a");r.href=window.URL.createObjectURL(l),r.download=t,document.body.appendChild(r),r.click(),document.body.removeChild(r),textForm.reset(),textProgressBar.style.width="0%",textProgressContainer.style.display="none",updateTextFileName()}else alert("Text conversion failed. Please try again."),textProgressBar.style.width="0%",textProgressContainer.style.display="none"},n.responseType="blob",n.send(t)}),updateTextFileName()}
   </script>
 <section style="margin-top: 40px; text-align: center; background: white; padding: 30px; border-radius: 8px; max-width: 600px; margin-left: auto; margin-right: auto;">
-  <h2>Why Thousands Trust Conversions.lol</h2>
+  <h2>Why Thousands Use Conversions.lol</h2>
   <ul style="list-style:none; padding:0; font-size: 18px; color: #222; line-height: 1.6;">
     <li>✅ File Conversions – Always Free</li>
-    <li>✅ Text Conversions – Premium Feature</li>
+    <li>✅ Text Conversions – Premium AI/ML Feature</li>
     <li>✅ Fast & Secure – Files deleted automatically</li>
     <li>✅ Works on Mobile, Tablet, and Desktop</li>
+  </ul>
+</section>
+
+<section style="margin-top: 40px; text-align: center; background: white; padding: 30px; border-radius: 8px; max-width: 600px; margin-left: auto; margin-right: auto;">
+  <h2>Why Thousands TRUST Conversions.lol</h2>
+  <ul style="list-style:none; padding:0; font-size: 18px; color: #222; line-height: 1.6;">
+    <li>🔷 Full encryption over HTTPS during upload and download</li>
+    <li>🔷 Uses APIs for AI-powered text conversion services from AWS</li>
+    <li>🔷 Files are never stored on servers & memory wiped at refresh</li>
+    <li>🔷 Built by a security engineer with security best practices</li>
   </ul>
 </section>
 
@@ -307,6 +311,9 @@
 
   <h3>What formats are supported?</h3>
   <p>JPG, PNG, PDF, Word, TXT, and more.</p>
+
+  <h3>What is the premium offering?</h3>
+  <p>Unlimited access to multiple premium AI conversion tools leveraged from Amazon Web Services (AWS)</p>
 </section>
 
 <footer style="text-align:center; margin-top:40px; padding:20px; border-top:1px solid #ddd; font-size: 14px; color: #666;">
