@@ -1,4 +1,4 @@
-# File Format Converter
+# File & Text Converter - [conversions.lol]("https://conversions.lol)
 
 A professional online file converter with user authentication and subscription billing. Convert JPG, PNG, PDF, Word, TXT files with secure user accounts and premium AI-powered text processing features.
 
