@@ -96,7 +96,7 @@ UPLOAD_FOLDER = "uploads"
 CONVERTED_FOLDER = "converted"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(CONVERTED_FOLDER, exist_ok=True)
-download_history: list[dict[str, str]] = []
+# History will be stored per session instead of globally
 
 # -------------------------------
 # Auth Routes
@@ -170,8 +170,11 @@ def index():
             print(f"Token validation failed in index: {e}")
             session.clear()
 
+    # Get session-specific history
+    session_history = session.get('conversion_history', [])
+    
     return render_template("index.html", 
-                         history=download_history, 
+                         history=session_history, 
                          logged_in="id_token" in session,
                          has_subscription=has_subscription)
 
@@ -219,11 +222,18 @@ def convert_file():
     else:
         return "Unsupported conversion type", 400
 
-    download_history.append({
+    # Add to session-specific history
+    if 'conversion_history' not in session:
+        session['conversion_history'] = []
+    
+    session['conversion_history'].append({
         "filename": os.path.basename(output_path),
         "conversion_type": conversion_type,
         "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     })
+    
+    # Keep only last 5 conversions per session
+    session['conversion_history'] = session['conversion_history'][-5:]
 
     @after_this_request
     def cleanup(response):
@@ -246,7 +256,8 @@ def submit_feedback():
                 f.write(f"[{timestamp}] {feedback}\n\n")
         except Exception as e:
             app.logger.error(f"Error saving feedback: {e}")
-        return render_template("index.html", history=download_history, feedback_message="Thank you for your feedback!")
+        session_history = session.get('conversion_history', [])
+        return render_template("index.html", history=session_history, feedback_message="Thank you for your feedback!")
     return redirect(url_for('index'))
 
 @app.route("/text-convert", methods=["POST"])
