@@ -223,9 +223,11 @@ def index():
 
     # Get user's conversion history from session
     session_history = session.get('conversion_history', [])
+    text_history = session.get('text_conversion_history', [])
     
     return render_template("index.html", 
-                         history=session_history, 
+                         history=session_history,
+                         text_history=text_history,
                          logged_in="id_token" in session,
                          has_subscription=has_subscription)
 
@@ -293,7 +295,7 @@ def convert_file():
     session['conversion_history'].append({
         "filename": os.path.basename(output_path),
         "conversion_type": conversion_type,
-        "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        "timestamp": datetime.datetime.now().strftime("%y/%m/%d")
     })
     
     # Keep only last 5 conversions per session
@@ -415,6 +417,19 @@ def text_convert():
         output_path = os.path.join(CONVERTED_FOLDER, output_filename)
         with open(output_path, 'w', encoding='utf-8') as f:
             f.write(result_text)
+        
+        # Add to text conversion history
+        if 'text_conversion_history' not in session:
+            session['text_conversion_history'] = []
+        
+        session['text_conversion_history'].append({
+            "filename": output_filename,
+            "conversion_type": conversion_type,
+            "timestamp": datetime.datetime.now().strftime("%y/%m/%d")
+        })
+        
+        # Keep only last 5 conversions per session
+        session['text_conversion_history'] = session['text_conversion_history'][-5:]
         
         # Clean up input file
         @after_this_request

@@ -78,6 +78,46 @@
       pointer-events: none;
     }
     
+    .text-conversions.locked #text-drop-zone {
+      opacity: 1 !important;
+      background-color: #f9fbfc !important;
+      border: 2.5px dashed #8aa9b1 !important;
+      border-radius: 12px !important;
+      padding: 35px 20px !important;
+      color: #5f7c8a !important;
+      cursor: not-allowed !important;
+      transition: background-color .3s, border-color .3s !important;
+      user-select: none !important;
+      margin-bottom: 12px !important;
+      font-size: 18px !important;
+      font-weight: 500 !important;
+      text-align: center !important;
+      pointer-events: none;
+    }
+    
+    .text-conversions:not(.locked) #text-drop-zone {
+      opacity: 1 !important;
+      background-color: #f9fbfc !important;
+      border: 2.5px dashed #8aa9b1 !important;
+      border-radius: 12px !important;
+      padding: 35px 20px !important;
+      color: #5f7c8a !important;
+      cursor: pointer !important;
+      transition: background-color .3s, border-color .3s !important;
+      user-select: none !important;
+      margin-bottom: 12px !important;
+      font-size: 18px !important;
+      font-weight: 500 !important;
+      text-align: center !important;
+      pointer-events: auto;
+    }
+    
+    .text-conversions:not(.locked) #text-drop-zone.dragover {
+      background-color: #e0f0ff !important;
+      border-color: #4a90e2 !important;
+      color: #2a568c !important;
+    }
+    
     .text-conversions.locked .upgrade-cta {
       opacity: 1;
       pointer-events: auto;
@@ -100,7 +140,6 @@
       margin-top: 20px;
       border: 2px solid #a855f7;
       box-shadow: 0 8px 25px rgba(139, 92, 246, 0.4), 0 0 20px rgba(139, 92, 246, 0.3);
-      animation: pulse 2s infinite;
     }
     
     .upgrade-cta a {
@@ -123,20 +162,94 @@
       box-shadow: 0 6px 20px rgba(168, 85, 247, 0.5);
     }
     
-    @keyframes pulse {
-      0% { box-shadow: 0 8px 25px rgba(139, 92, 246, 0.4), 0 0 20px rgba(139, 92, 246, 0.3); }
-      50% { box-shadow: 0 12px 35px rgba(139, 92, 246, 0.6), 0 0 30px rgba(139, 92, 246, 0.5); }
-      100% { box-shadow: 0 8px 25px rgba(139, 92, 246, 0.4), 0 0 20px rgba(139, 92, 246, 0.3); }
-    }
+
     
     /* Button consistency */
     button {
       width: 100%;
     }
     
+    /* Download button container */
+    .button-container {
+      display: flex;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    
+    .button-container.single {
+      display: block;
+    }
+    
+    .button-container.single button {
+      width: 100%;
+    }
+    
+    .button-container.dual button {
+      flex: 0 0 50%;
+    }
+    
+    .convert-btn.hide {
+      display: none;
+    }
+    
+    .download-btn, .open-btn {
+      display: none;
+    }
+    
+    .download-btn.show, .open-btn.show {
+      display: block;
+    }
+    
+    /* Responsive text for download buttons */
+    .download-btn .desktop-text,
+    .open-btn .desktop-text {
+      display: inline;
+    }
+    
+    .download-btn .mobile-text,
+    .open-btn .mobile-text {
+      display: none;
+    }
+    
+    @media (max-width: 768px) {
+      .download-btn .desktop-text,
+      .open-btn .desktop-text {
+        display: none;
+      }
+      
+      .download-btn .mobile-text,
+      .open-btn .mobile-text {
+        display: inline;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      .button-container.dual {
+        flex-direction: column;
+      }
+      
+      .button-container.dual button {
+        flex: none;
+        width: 100%;
+      }
+    }
+    
     /* Responsive widths */
-    .file-conversions { flex: 0 0 50%; }
-    .text-conversions { flex: 0 0 50%; }
+    .file-conversions { flex: 0 0 50%; min-width: 0; }
+    .text-conversions { flex: 0 0 50%; min-width: 0; }
+    
+    /* History section formatting */
+    #history-section ul {
+      margin: 0;
+      padding-left: 20px;
+    }
+    
+    #history-section li {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-bottom: 5px;
+    }
     
     @media (max-width: 768px) {
       .main-content {
@@ -188,7 +301,17 @@
             <div id="progress-bar"></div>
           </div>
 
-          <button type="submit" style="margin-top:10px;">Convert Now</button>
+          <div class="button-container single" id="file-button-container">
+            <button type="submit" class="convert-btn" id="file-convert-btn">Convert Now</button>
+            <button type="button" class="download-btn" id="file-download-btn">
+              <span class="desktop-text">Download Again</span>
+              <span class="mobile-text">Download</span>
+            </button>
+            <button type="button" class="open-btn" id="file-open-btn">
+              <span class="desktop-text">Open in Tab</span>
+              <span class="mobile-text">Open</span>
+            </button>
+          </div>
         </form>
 
         <section id="history-section" style="margin-top: 30px;">
@@ -210,12 +333,12 @@
         <h3>✨ Text Conversions <span style="font-size: 12px; background: linear-gradient(135deg, #667eea 0%, #6a25af 100%); color: white; padding: 2px 8px; border-radius: 10px; margin-left: 8px;">PREMIUM</span><span style="font-size: 12px; background: linear-gradient(135deg, #faf733 0%, #af2525 100%); color: white; padding: 2px 8px; border-radius: 10px; margin-left: 8px;">AI/ML</span></h3>
         
         <form id="text-convert-form" action="{{ url_for('text_convert') }}" method="POST" enctype="multipart/form-data">
-          <div id="drop-zone" class="upload-area">
-            <p>Drag & Drop your file here (PDF, JPG, PNG, TXT) or <span id="click-select" style="text-decoration: underline; cursor: pointer;">click to browse</span></p>
+          <div id="text-drop-zone" class="upload-area">
+            <p>Drag & Drop your file here (PDF, JPG, PNG, TXT) or <span id="text-click-select" style="text-decoration: underline; cursor: pointer;">click to browse</span></p>
             <input type="file" name="text_file" id="text-file-input" accept=".pdf,.jpg,.jpeg,.png,.txt" hidden {% if not has_subscription %}disabled{% endif %} />
           </div>
 
-          <p id="file-name" style="font-style: italic; margin-top: 8px; color: #555;">No file selected</p>
+          <p id="text-file-name" style="font-style: italic; margin-top: 8px; color: #555;">No file selected</p>
 
           <label for="text-conversion-type">Select Conversion Type:</label>
           <select name="text_conversion_type" id="text-conversion-type" required {% if not has_subscription %}disabled{% endif %}>
@@ -232,15 +355,33 @@
             <div id="text-progress-bar"></div>
           </div>
 
-          <button type="submit" style="margin-top:10px;">
-            {% if has_subscription %}Convert Now{% else %}🔒 Requires Subscription{% endif %}
-          </button>
+          <div class="button-container single" id="text-button-container">
+            <button type="submit" class="convert-btn" id="text-convert-btn">
+              {% if has_subscription %}Convert Now{% else %}🔒 Requires Subscription{% endif %}
+            </button>
+            <button type="button" class="download-btn" id="text-download-btn">
+              <span class="desktop-text">Download Again</span>
+              <span class="mobile-text">Download</span>
+            </button>
+            <button type="button" class="open-btn" id="text-open-btn">
+              <span class="desktop-text">Open in Tab</span>
+              <span class="mobile-text">Open</span>
+            </button>
+          </div>
         </form>
 
         <section id="history-section" style="margin-top: 30px;">
           <h4>Recent Text Conversions</h4>
           {% if has_subscription %}
-            <p>No text conversions yet.</p>
+            {% if text_history %}
+              <ul>
+                {% for item in text_history[-3:] %}
+                  <li>{{ item.timestamp }} — {{ item.filename }}</li>
+                {% endfor %}
+              </ul>
+            {% else %}
+              <p>No text conversions yet.</p>
+            {% endif %}
           {% else %}
             <p style="color: #888;">Subscribe to see your conversion history.</p>
           {% endif %}
@@ -275,10 +416,30 @@
 
   <script>
     // File conversions functionality
-    const dropZone=document.getElementById("drop-zone"),fileInput=document.getElementById("file-input"),clickSelect=document.getElementById("click-select"),form=document.getElementById("convert-form"),progressContainer=document.getElementById("progress-container"),progressBar=document.getElementById("progress-bar"),fileNameElem=document.getElementById("file-name");function updateFileName(){fileInput.files.length>0?fileNameElem.textContent=`Selected file: ${fileInput.files[0].name}`:fileNameElem.textContent="No file selected"}clickSelect.addEventListener("click",()=>fileInput.click()),fileInput.addEventListener("change",updateFileName),dropZone.addEventListener("dragover",e=>{e.preventDefault(),dropZone.classList.add("dragover")}),dropZone.addEventListener("dragleave",e=>{dropZone.classList.remove("dragover")}),dropZone.addEventListener("drop",e=>{e.preventDefault(),dropZone.classList.remove("dragover"),e.dataTransfer.files.length>0&&(fileInput.files=e.dataTransfer.files,updateFileName())}),form.addEventListener("submit",e=>{if(e.preventDefault(),!fileInput.files.length){alert("Please select a file to convert.");return}if(!document.getElementById("conversion-type").value){alert("Please select a conversion type.");return}let t=new FormData(form),n=new XMLHttpRequest;n.open("POST",form.action,!0),n.upload.onprogress=e=>{if(e.lengthComputable){progressContainer.style.display="block";let t=e.loaded/e.total*100;progressBar.style.width=t+"%"}},n.onload=()=>{if(200===n.status){let e=n.getResponseHeader("Content-Disposition"),t="converted-file";e&&-1!==e.indexOf("filename=")&&(t=e.split("filename=")[1].replace(/['"]/g,""));let l=new Blob([n.response],{type:n.getResponseHeader("Content-Type")}),r=document.createElement("a");r.href=window.URL.createObjectURL(l),r.download=t,document.body.appendChild(r),r.click(),document.body.removeChild(r),form.reset(),progressBar.style.width="0%",progressContainer.style.display="none",updateFileName(),window.location.reload()}else alert("Conversion failed. Please try again."),progressBar.style.width="0%",progressContainer.style.display="none"},n.responseType="blob",n.send(t)}),updateFileName();
+    let fileBlob = null, fileName = null, fileBlobUrl = null, fileType = null;
+    const dropZone=document.getElementById("drop-zone"),fileInput=document.getElementById("file-input"),clickSelect=document.getElementById("click-select"),form=document.getElementById("convert-form"),progressContainer=document.getElementById("progress-container"),progressBar=document.getElementById("progress-bar"),fileNameElem=document.getElementById("file-name"),fileButtonContainer=document.getElementById("file-button-container"),fileDownloadBtn=document.getElementById("file-download-btn"),fileOpenBtn=document.getElementById("file-open-btn"),fileConvertBtn=document.getElementById("file-convert-btn");
+    
+    function canDisplayInBrowser(filename,mimeType){return mimeType&&(mimeType.startsWith('text/')||mimeType.startsWith('image/')||mimeType==='application/pdf')||filename&&(filename.endsWith('.txt')||filename.endsWith('.pdf')||filename.endsWith('.png')||filename.endsWith('.jpg')||filename.endsWith('.jpeg'))}
+    
+    function updateFileName(){fileInput.files.length>0?fileNameElem.textContent=`Selected file: ${fileInput.files[0].name}`:fileNameElem.textContent="No file selected"}
+    
+    function resetFileButtons(){fileButtonContainer.className="button-container single";fileConvertBtn.classList.remove("hide");fileDownloadBtn.classList.remove("show");fileOpenBtn.classList.remove("show");if(fileBlobUrl){URL.revokeObjectURL(fileBlobUrl);fileBlobUrl=null}fileBlob=null;fileName=null;fileType=null}
+    
+    function showFileButtons(){fileButtonContainer.className="button-container dual";fileConvertBtn.classList.add("hide");fileDownloadBtn.classList.add("show");fileOpenBtn.classList.add("show")}
+    
+    clickSelect.addEventListener("click",()=>fileInput.click()),fileInput.addEventListener("change",()=>{updateFileName();resetFileButtons()}),dropZone.addEventListener("dragover",e=>{e.preventDefault(),dropZone.classList.add("dragover")}),dropZone.addEventListener("dragleave",e=>{dropZone.classList.remove("dragover")}),dropZone.addEventListener("drop",e=>{e.preventDefault(),dropZone.classList.remove("dragover"),e.dataTransfer.files.length>0&&(fileInput.files=e.dataTransfer.files,updateFileName(),resetFileButtons())}),form.addEventListener("submit",e=>{if(e.preventDefault(),resetFileButtons(),!fileInput.files.length){alert("Please select a file to convert.");return}if(!document.getElementById("conversion-type").value){alert("Please select a conversion type.");return}let t=new FormData(form),n=new XMLHttpRequest;n.open("POST",form.action,!0),n.upload.onprogress=e=>{if(e.lengthComputable){progressContainer.style.display="block";let t=e.loaded/e.total*100;progressBar.style.width=t+"%"}},n.onload=()=>{if(200===n.status){let e=n.getResponseHeader("Content-Disposition");fileName="converted-file";e&&-1!==e.indexOf("filename=")&&(fileName=e.split("filename=")[1].replace(/['"]/g,""));fileType=n.getResponseHeader("Content-Type");fileBlob=new Blob([n.response],{type:fileType});fileBlobUrl=window.URL.createObjectURL(fileBlob);let l=document.createElement("a");l.href=fileBlobUrl,l.download=fileName,document.body.appendChild(l),l.click(),document.body.removeChild(l),progressBar.style.width="0%",progressContainer.style.display="none",showFileButtons()}else alert("Conversion failed. Please try again."),progressBar.style.width="0%",progressContainer.style.display="none"},n.responseType="blob",n.send(t)}),fileDownloadBtn.addEventListener("click",()=>{if(fileBlobUrl){let e=document.createElement("a");e.href=fileBlobUrl,e.download=fileName,document.body.appendChild(e),e.click(),document.body.removeChild(e)}}),fileOpenBtn.addEventListener("click",()=>{if(fileBlobUrl){if(canDisplayInBrowser(fileName,fileType)){window.open(fileBlobUrl,"_blank")}else{alert("This file type cannot be displayed in the browser. Please use the Download button instead.")}}}),updateFileName();
     
     // Text conversion functionality
-    const textDropZone=document.getElementById("text-drop-zone"),textFileInput=document.getElementById("text-file-input"),textClickSelect=document.getElementById("text-click-select"),textForm=document.getElementById("text-convert-form"),textProgressContainer=document.getElementById("text-progress-container"),textProgressBar=document.getElementById("text-progress-bar"),textFileNameElem=document.getElementById("text-file-name");function updateTextFileName(){textFileInput.files.length>0?textFileNameElem.textContent=`Selected file: ${textFileInput.files[0].name}`:textFileNameElem.textContent="No file selected"}if(textClickSelect){textClickSelect.addEventListener("click",()=>textFileInput.click()),textFileInput.addEventListener("change",updateTextFileName),textDropZone.addEventListener("dragover",e=>{e.preventDefault(),textDropZone.classList.add("dragover")}),textDropZone.addEventListener("dragleave",e=>{textDropZone.classList.remove("dragover")}),textDropZone.addEventListener("drop",e=>{e.preventDefault(),textDropZone.classList.remove("dragover"),e.dataTransfer.files.length>0&&(textFileInput.files=e.dataTransfer.files,updateTextFileName())}),textForm.addEventListener("submit",e=>{if(e.preventDefault(),!textFileInput.files.length){alert("Please select a file to convert.");return}if(!document.getElementById("text-conversion-type").value){alert("Please select a conversion type.");return}let t=new FormData(textForm),n=new XMLHttpRequest;n.open("POST",textForm.action,!0),n.upload.onprogress=e=>{if(e.lengthComputable){textProgressContainer.style.display="block";let t=e.loaded/e.total*100;textProgressBar.style.width=t+"%"}},n.onload=()=>{if(200===n.status){alert("Text conversion completed!"),textForm.reset(),textProgressBar.style.width="0%",textProgressContainer.style.display="none",updateTextFileName()}else alert("Text conversion failed. Please try again."),textProgressBar.style.width="0%",textProgressContainer.style.display="none"},n.send(t)}),updateTextFileName()}ument.getElementById("text-progress-container"),textProgressBar=document.getElementById("text-progress-bar"),textFileNameElem=document.getElementById("text-file-name");function updateTextFileName(){textFileInput&&textFileInput.files.length>0?textFileNameElem.textContent=`Selected file: ${textFileInput.files[0].name}`:textFileNameElem.textContent="No file selected"}if(textClickSelect&&textFileInput){textClickSelect.addEventListener("click",()=>textFileInput.click()),textFileInput.addEventListener("change",updateTextFileName),textDropZone.addEventListener("dragover",e=>{e.preventDefault(),textDropZone.classList.add("dragover")}),textDropZone.addEventListener("dragleave",e=>{textDropZone.classList.remove("dragover")}),textDropZone.addEventListener("drop",e=>{e.preventDefault(),textDropZone.classList.remove("dragover"),e.dataTransfer.files.length>0&&(textFileInput.files=e.dataTransfer.files,updateTextFileName())}),textForm.addEventListener("submit",e=>{if(e.preventDefault(),!textFileInput.files.length){alert("Please select a file to convert.");return}if(!document.getElementById("text-conversion-type").value){alert("Please select a conversion type.");return}let t=new FormData(textForm),n=new XMLHttpRequest;n.open("POST",textForm.action,!0),n.upload.onprogress=e=>{if(e.lengthComputable){textProgressContainer.style.display="block";let t=e.loaded/e.total*100;textProgressBar.style.width=t+"%"}},n.onload=()=>{if(200===n.status){let e=n.getResponseHeader("Content-Disposition"),t="converted-text-file";e&&-1!==e.indexOf("filename=")&&(t=e.split("filename=")[1].replace(/['"]/g,""));let l=new Blob([n.response],{type:n.getResponseHeader("Content-Type")}),r=document.createElement("a");r.href=window.URL.createObjectURL(l),r.download=t,document.body.appendChild(r),r.click(),document.body.removeChild(r),textForm.reset(),textProgressBar.style.width="0%",textProgressContainer.style.display="none",updateTextFileName()}else alert("Text conversion failed. Please try again."),textProgressBar.style.width="0%",textProgressContainer.style.display="none"},n.responseType="blob",n.send(t)}),updateTextFileName()}
+    let textBlob = null, textFileName = null, textBlobUrl = null, textFileType = null;
+    const textDropZone=document.getElementById("text-drop-zone"),textFileInput=document.getElementById("text-file-input"),textClickSelect=document.getElementById("text-click-select"),textForm=document.getElementById("text-convert-form"),textProgressContainer=document.getElementById("text-progress-container"),textProgressBar=document.getElementById("text-progress-bar"),textFileNameElem=document.getElementById("text-file-name"),textButtonContainer=document.getElementById("text-button-container"),textDownloadBtn=document.getElementById("text-download-btn"),textOpenBtn=document.getElementById("text-open-btn"),textConvertBtn=document.getElementById("text-convert-btn");
+    
+    function updateTextFileName(){textFileInput&&textFileInput.files.length>0?textFileNameElem.textContent=`Selected file: ${textFileInput.files[0].name}`:textFileNameElem.textContent="No file selected"}
+    
+    function resetTextButtons(){textButtonContainer.className="button-container single";textConvertBtn.classList.remove("hide");textDownloadBtn.classList.remove("show");textOpenBtn.classList.remove("show");if(textBlobUrl){URL.revokeObjectURL(textBlobUrl);textBlobUrl=null}textBlob=null;textFileName=null;textFileType=null}
+    
+    function showTextButtons(){textButtonContainer.className="button-container dual";textConvertBtn.classList.add("hide");textDownloadBtn.classList.add("show");textOpenBtn.classList.add("show")}
+    
+    if(textClickSelect&&textFileInput){textClickSelect.addEventListener("click",()=>textFileInput.click()),textFileInput.addEventListener("change",()=>{updateTextFileName();resetTextButtons()}),textDropZone.addEventListener("dragover",e=>{e.preventDefault(),textDropZone.classList.add("dragover")}),textDropZone.addEventListener("dragleave",e=>{textDropZone.classList.remove("dragover")}),textDropZone.addEventListener("drop",e=>{e.preventDefault(),textDropZone.classList.remove("dragover"),e.dataTransfer.files.length>0&&(textFileInput.files=e.dataTransfer.files,updateTextFileName(),resetTextButtons())}),textForm.addEventListener("submit",e=>{if(e.preventDefault(),resetTextButtons(),!textFileInput.files.length){alert("Please select a file to convert.");return}if(!document.getElementById("text-conversion-type").value){alert("Please select a conversion type.");return}let t=new FormData(textForm),n=new XMLHttpRequest;n.open("POST",textForm.action,!0),n.upload.onprogress=e=>{if(e.lengthComputable){textProgressContainer.style.display="block";let t=e.loaded/e.total*100;textProgressBar.style.width=t+"%"}},n.onload=()=>{if(200===n.status){let e=n.getResponseHeader("Content-Disposition");textFileName="converted-text-file";e&&-1!==e.indexOf("filename=")&&(textFileName=e.split("filename=")[1].replace(/['"]/g,""));textFileType=n.getResponseHeader("Content-Type");textBlob=new Blob([n.response],{type:textFileType});textBlobUrl=window.URL.createObjectURL(textBlob);let l=document.createElement("a");l.href=textBlobUrl,l.download=textFileName,document.body.appendChild(l),l.click(),document.body.removeChild(l),textProgressBar.style.width="0%",textProgressContainer.style.display="none",showTextButtons()}else alert("Text conversion failed. Please try again."),textProgressBar.style.width="0%",textProgressContainer.style.display="none"},n.responseType="blob",n.send(t)}),textDownloadBtn.addEventListener("click",()=>{if(textBlobUrl){let e=document.createElement("a");e.href=textBlobUrl,e.download=textFileName,document.body.appendChild(e),e.click(),document.body.removeChild(e)}}),textOpenBtn.addEventListener("click",()=>{if(textBlobUrl){if(canDisplayInBrowser(textFileName,textFileType)){window.open(textBlobUrl,"_blank")}else{alert("This file type cannot be displayed in the browser. Please use the Download button instead.")}}}),updateTextFileName()}
   </script>
 <section style="margin-top: 40px; text-align: center; background: white; padding: 30px; border-radius: 8px; max-width: 600px; margin-left: auto; margin-right: auto;">
   <h2>Why Thousands Use Conversions.lol</h2>

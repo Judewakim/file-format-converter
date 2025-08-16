@@ -40,7 +40,7 @@ h2 {
   margin-top: 50px;
 }
 
-#drop-zone, #text-drop-zone {
+#drop-zone, #text-drop-zone, .upload-area {
   border: 2.5px dashed #8aa9b1;
   border-radius: 12px;
   padding: 35px 20px;
@@ -54,7 +54,7 @@ h2 {
   font-weight: 500;
 }
 
-#drop-zone.dragover, #text-drop-zone.dragover {
+#drop-zone.dragover, #text-drop-zone.dragover, .upload-area.dragover {
   background-color: #e0f0ff;
   border-color: #4a90e2;
   color: #2a568c;
