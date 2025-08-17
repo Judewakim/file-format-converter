@@ -5,6 +5,8 @@
 from flask import Flask, render_template, request, send_file, redirect, url_for, after_this_request, session, abort, jsonify
 import os
 import secrets
+import time
+import threading
 from werkzeug.utils import secure_filename
 
 # File processing libraries
@@ -20,16 +22,22 @@ try:
 except ImportError:
     CHARDET_AVAILABLE = False
 
-# ReportLab PDF generation libraries (with fallback handling)
+# PDF processing libraries (with fallback handling)
 try:
-    from reportlab.lib.pagesizes import letter
-    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
-    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-    from reportlab.lib.units import inch
-    from reportlab.lib.enums import TA_LEFT
+    from reportlab.lib.pagesizes import letter  # type: ignore
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer  # type: ignore
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle  # type: ignore
+    from reportlab.lib.units import inch  # type: ignore
+    from reportlab.lib.enums import TA_LEFT  # type: ignore
     REPORTLAB_AVAILABLE = True
 except ImportError:
     REPORTLAB_AVAILABLE = False
+
+try:
+    import fitz  # type: ignore # PyMuPDF
+    PYMUPDF_AVAILABLE = True
+except ImportError:
+    PYMUPDF_AVAILABLE = False
 
 # Authentication and API libraries
 import requests
@@ -152,6 +160,24 @@ CONVERTED_FOLDER = "converted"  # Temporary storage for converted files
 # Create directories if they don't exist
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(CONVERTED_FOLDER, exist_ok=True)
+
+def force_delete_file(file_path, max_attempts=5, delay=0.5):
+    """Force delete a file with retries if it's locked by another process"""
+    for attempt in range(max_attempts):
+        try:
+            if os.path.exists(file_path):
+                os.remove(file_path)
+                app.logger.info(f"Successfully deleted {file_path} on attempt {attempt + 1}")
+            return
+        except PermissionError:
+            if attempt < max_attempts - 1:
+                app.logger.warning(f"File {file_path} locked, retrying in {delay}s (attempt {attempt + 1}/{max_attempts})")
+                time.sleep(delay)
+            else:
+                app.logger.error(f"Failed to delete {file_path} after {max_attempts} attempts")
+        except Exception as e:
+            app.logger.error(f"Error deleting {file_path}: {e}")
+            break
 
 # Note: Conversion history is stored per user session, not globally
 
@@ -312,14 +338,15 @@ def convert_file():
     # Keep only last 5 conversions per session
     session['conversion_history'] = session['conversion_history'][-5:]
 
-    # Clean up uploaded file after response
-    @after_this_request
-    def cleanup(response):
-        try:
-            os.remove(input_path)
-        except Exception as e:
-            app.logger.error(f"Error deleting uploaded file {input_path}: {e}")
-        return response
+    # Schedule file cleanup after 3 minutes
+    def delayed_cleanup():
+        time.sleep(180)  # 3 minutes
+        force_delete_file(input_path)
+    
+    cleanup_thread = threading.Thread(target=delayed_cleanup)
+    cleanup_thread.start()
+    
+    return send_file(output_path, as_attachment=True)
 
     return send_file(output_path, as_attachment=True)
 
@@ -373,12 +400,17 @@ def text_convert():
     input_path = os.path.join(UPLOAD_FOLDER, filename)
     file.save(input_path)
 
+    # Get file extension early
+    file_ext = filename.lower().split('.')[-1]
+    base_filename = filename.rsplit('.', 1)[0]
+
     try:
         # Initialize AWS clients
-        import boto3
-        translate_client = boto3.client('translate', region_name=os.getenv('AWS_REGION', 'us-east-1'))
-        textract_client = boto3.client('textract', region_name=os.getenv('AWS_REGION', 'us-east-1'))
-        comprehend_client = boto3.client('comprehend', region_name=os.getenv('AWS_REGION', 'us-east-1'))
+        import boto3  # type: ignore
+        aws_region = os.getenv('AWS_REGION', 'us-east-1')
+        
+        translate_client = boto3.client('translate', region_name=aws_region)
+        textract_client = boto3.client('textract', region_name=aws_region)
         
         # Extract text from file
         extracted_text = extract_text_from_file(input_path, textract_client)
@@ -387,54 +419,280 @@ def text_convert():
             return "Could not extract text from file", 400
         
         # Process based on conversion type
-        result_text = ""
-        output_filename = ""
-        
         if conversion_type.startswith("translate_"):
-            target_lang = {
-                "translate_spanish": "es",
-                "translate_french": "fr", 
-                "translate_german": "de",
-                "translate_chinese": "zh"
-            }.get(conversion_type)
+            target_lang_map = {
+                "translate_chinese": ("zh", "chinese"),
+                "translate_spanish": ("es", "spanish"),
+                "translate_arabic": ("ar", "arabic"),
+                "translate_french": ("fr", "french")
+            }
             
-            if target_lang:
-                response = translate_client.translate_text(
-                    Text=extracted_text[:5000],  # AWS Translate limit
-                    SourceLanguageCode='auto',
-                    TargetLanguageCode=target_lang
-                )
-                result_text = response['TranslatedText']
-                output_filename = f"{filename.rsplit('.', 1)[0]}_translated_{target_lang}.txt"
-        
-        elif conversion_type == "ocr_extract":
-            result_text = extracted_text
-            output_filename = f"{filename.rsplit('.', 1)[0]}_extracted.txt"
-        
-        elif conversion_type == "detect_language":
-            response = comprehend_client.detect_dominant_language(
-                Text=extracted_text[:5000]
+            lang_code, lang_name = target_lang_map.get(conversion_type, (None, None))
+            if not lang_code:
+                return "Unsupported translation language", 400
+            
+            # Use format preservation for translation
+            output_path = translate_with_format_preservation(
+                input_path, file_ext, base_filename, lang_code, lang_name, 
+                translate_client, textract_client
             )
-            languages = response['Languages']
-            result_text = f"Detected Languages:\n"
-            for lang in languages:
-                result_text += f"- {lang['LanguageCode']}: {lang['Score']:.2%} confidence\n"
-            output_filename = f"{filename.rsplit('.', 1)[0]}_language_detection.txt"
+            
+            # Add note for Arabic/Chinese users about TXT format
+            if lang_code in ['ar', 'zh'] and 'text_conversion_history' in session:
+                session['text_conversion_history'][-1]['note'] = 'Returned as TXT due to font limitations'
+        
+        elif conversion_type == "ocr_extract_txt":
+            output_filename = f"{base_filename}-extracted.txt"
+            output_path = os.path.join(CONVERTED_FOLDER, output_filename)
+            with open(output_path, 'w', encoding='utf-8') as f:
+                f.write(extracted_text)
+        
+        elif conversion_type == "ocr_extract_pdf":
+            output_filename = f"{base_filename}-extracted.pdf"
+            output_path = os.path.join(CONVERTED_FOLDER, output_filename)
+            convert_txt_to_pdf_from_text(extracted_text, output_path)
         
         else:
             return "Unsupported conversion type", 400
-        
-        # Save result to file
-        output_path = os.path.join(CONVERTED_FOLDER, output_filename)
-        with open(output_path, 'w', encoding='utf-8') as f:
-            f.write(result_text)
         
         # Add to text conversion history
         if 'text_conversion_history' not in session:
             session['text_conversion_history'] = []
         
         session['text_conversion_history'].append({
-            "filename": output_filename,
+            "filename": os.path.basename(output_path),
+            "conversion_type": conversion_type,
+            "timestamp": datetime.datetime.now().strftime("%y/%m/%d")
+        })
+        
+        # Keep only last 5 conversions per session
+        session['text_conversion_history'] = session['text_conversion_history'][-5:]
+        
+        # Schedule file cleanup after 3 minutes
+        def delayed_cleanup():
+            time.sleep(180)  # 3 minutes
+            force_delete_file(input_path)
+        
+        cleanup_thread = threading.Thread(target=delayed_cleanup)
+        cleanup_thread.start()
+        
+        return send_file(output_path, as_attachment=True)
+        
+    except Exception as e:
+        app.logger.error(f"Text conversion error: {e}")
+        return f"Text conversion failed. Please try again.", 500
+
+@app.route("/conversion-progress/<conversion_id>")
+@login_required
+def conversion_progress(conversion_id):
+    """Get conversion progress"""
+    progress_data = session.get(f'conversion_{conversion_id}', {'status': 'not_found', 'progress': 0})
+    return jsonify(progress_data)
+
+def process_text_conversion(conversion_id, form_data, files_data):
+    """Background text conversion with progress updates"""
+    try:
+        # Update progress
+        session[f'conversion_{conversion_id}'] = {'status': 'processing', 'progress': 20}
+        
+        # Simulate file processing (replace with actual file handling)
+        file_data = files_data.get('text_file')
+        if not file_data:
+            session[f'conversion_{conversion_id}'] = {'status': 'failed', 'error': 'No file uploaded'}
+            return
+            
+        conversion_type = form_data.get('text_conversion_type')
+        if not conversion_type:
+            session[f'conversion_{conversion_id}'] = {'status': 'failed', 'error': 'No conversion type selected'}
+            return
+            
+        # Save file temporarily
+        filename = secure_filename(file_data.filename)
+        input_path = os.path.join(UPLOAD_FOLDER, f"{conversion_id}_{filename}")
+        file_data.save(input_path)
+        
+        session[f'conversion_{conversion_id}'] = {'status': 'processing', 'progress': 40}
+        
+        # Process conversion (existing logic)
+        user_info = verify_token(session["id_token"])
+        user_id = user_info.get("sub")
+        
+        if not has_active_subscription(user_id):
+            session[f'conversion_{conversion_id}'] = {'status': 'failed', 'error': 'Active subscription required'}
+            return
+            
+        session[f'conversion_{conversion_id}'] = {'status': 'processing', 'progress': 60}
+        
+        # Initialize AWS clients
+        import boto3  # type: ignore
+        translate_client = boto3.client('translate', region_name=os.getenv('AWS_REGION', 'us-east-1'))
+        textract_client = boto3.client('textract', region_name=os.getenv('AWS_REGION', 'us-east-1'))
+        
+        session[f'conversion_{conversion_id}'] = {'status': 'processing', 'progress': 80}
+        
+        # Extract and translate text (simplified)
+        file_ext = filename.lower().split('.')[-1]
+        base_filename = filename.rsplit('.', 1)[0]
+        
+        extracted_text = extract_text_from_file(input_path, textract_client)
+        if not extracted_text:
+            session[f'conversion_{conversion_id}'] = {'status': 'failed', 'error': 'Could not extract text from file'}
+            return
+            
+        # Process conversion
+        target_lang_map = {
+            "translate_chinese": ("zh", "chinese"),
+            "translate_spanish": ("es", "spanish"),
+            "translate_arabic": ("ar", "arabic"),
+            "translate_french": ("fr", "french")
+        }
+        
+        if conversion_type.startswith("translate_"):
+            lang_code, lang_name = target_lang_map.get(conversion_type, (None, None))
+            if lang_code:
+                output_path = translate_with_format_preservation(
+                    input_path, file_ext, base_filename, lang_code, lang_name, 
+                    translate_client, textract_client
+                )
+        elif conversion_type == "ocr_extract_txt":
+            output_filename = f"{base_filename}-extracted.txt"
+            output_path = os.path.join(CONVERTED_FOLDER, output_filename)
+            with open(output_path, 'w', encoding='utf-8') as f:
+                f.write(extracted_text)
+        elif conversion_type == "ocr_extract_pdf":
+            output_filename = f"{base_filename}-extracted.pdf"
+            output_path = os.path.join(CONVERTED_FOLDER, output_filename)
+            convert_txt_to_pdf_from_text(extracted_text, output_path)
+        else:
+            session[f'conversion_{conversion_id}'] = {'status': 'failed', 'error': 'Unsupported conversion type'}
+            return
+            
+        # Schedule cleanup
+        def delayed_cleanup():
+            time.sleep(180)
+            force_delete_file(input_path)
+        threading.Thread(target=delayed_cleanup).start()
+        
+        # Mark as completed
+        session[f'conversion_{conversion_id}'] = {
+            'status': 'completed', 
+            'progress': 100,
+            'download_url': f'/download/{os.path.basename(output_path)}'
+        }
+        
+    except Exception as e:
+        session[f'conversion_{conversion_id}'] = {'status': 'failed', 'error': str(e)}
+
+@app.route('/download/<filename>')
+@login_required
+def download_file(filename):
+    """Download converted file"""
+    file_path = os.path.join(CONVERTED_FOLDER, filename)
+    if os.path.exists(file_path):
+        return send_file(file_path, as_attachment=True)
+    else:
+        abort(404)
+
+def text_convert_old_backup():
+    user_info = verify_token(session["id_token"])
+    user_id = user_info.get("sub")
+    
+    # Check if user has active subscription
+    if not has_active_subscription(user_id):
+        return jsonify({"error": "Active subscription required"}), 403
+    
+    # Validate file upload
+    if "text_file" not in request.files:
+        return "No file uploaded", 400
+
+    file = request.files["text_file"]
+    conversion_type = request.form.get("text_conversion_type")
+    if file.filename == "":
+        return "No selected file", 400
+
+    # Save uploaded file securely
+    filename = secure_filename(file.filename)
+    input_path = os.path.join(UPLOAD_FOLDER, filename)
+    file.save(input_path)
+
+    # Get file extension early
+    file_ext = filename.lower().split('.')[-1]
+    base_filename = filename.rsplit('.', 1)[0]
+
+    try:
+        # Initialize AWS clients with debugging
+        import boto3  # type: ignore
+        aws_region = os.getenv('AWS_REGION', 'us-east-1')
+        app.logger.info(f"Initializing AWS clients in region: {aws_region}")
+        
+        translate_client = boto3.client('translate', region_name=aws_region)
+        textract_client = boto3.client('textract', region_name=aws_region)
+        comprehend_client = boto3.client('comprehend', region_name=aws_region)
+        
+        # Test AWS credentials
+        try:
+            translate_client.list_text_translation_jobs(MaxResults=1)
+            app.logger.info("AWS Translate client initialized successfully")
+        except Exception as cred_error:
+            app.logger.error(f"AWS credentials issue: {cred_error}")
+        
+        # Extract text from file with detailed logging
+        app.logger.info(f"Extracting text from {filename} (type: {file_ext})")
+        extracted_text = extract_text_from_file(input_path, textract_client)
+        
+        if not extracted_text:
+            app.logger.error(f"Text extraction failed for {filename}")
+            return "Could not extract text from file", 400
+        
+        app.logger.info(f"Extracted {len(extracted_text)} characters from {filename}")
+        
+        # Process based on conversion type
+        result_text = ""
+        output_filename = ""
+        
+        # Handle translation with format preservation
+        if conversion_type.startswith("translate_"):
+            target_lang_map = {
+                "translate_chinese": ("zh", "chinese"),
+                "translate_spanish": ("es", "spanish"),
+                "translate_arabic": ("ar", "arabic"),
+                "translate_french": ("fr", "french")
+            }
+            
+            lang_code, lang_name = target_lang_map.get(conversion_type, (None, None))
+            if not lang_code:
+                return "Unsupported translation language", 400
+            
+            app.logger.info(f"Starting translation to {lang_name} ({lang_code})")
+            
+            # Use PyMuPDF for all PDF translations to preserve formatting
+            output_path = translate_with_format_preservation(
+                input_path, file_ext, base_filename, lang_code, lang_name, 
+                translate_client, textract_client
+            )
+            app.logger.info(f"Translation completed, output: {os.path.basename(output_path)}")
+        
+        elif conversion_type == "ocr_extract_txt":
+            result_text = extracted_text
+            output_filename = f"{base_filename}-extracted.txt"
+            output_path = os.path.join(CONVERTED_FOLDER, output_filename)
+            with open(output_path, 'w', encoding='utf-8') as f:
+                f.write(result_text)
+        
+        elif conversion_type == "ocr_extract_pdf":
+            output_filename = f"{base_filename}-extracted.pdf"
+            output_path = os.path.join(CONVERTED_FOLDER, output_filename)
+            convert_txt_to_pdf_from_text(extracted_text, output_path)
+        
+        else:
+            return "Unsupported conversion type", 400
+        
+        # Add to text conversion history
+        if 'text_conversion_history' not in session:
+            session['text_conversion_history'] = []
+        
+        session['text_conversion_history'].append({
+            "filename": os.path.basename(output_path),
             "conversion_type": conversion_type,
             "timestamp": datetime.datetime.now().strftime("%y/%m/%d")
         })
@@ -445,17 +703,36 @@ def text_convert():
         # Clean up input file
         @after_this_request
         def cleanup(response):
-            try:
-                os.remove(input_path)
-            except Exception as e:
-                app.logger.error(f"Error deleting uploaded file {input_path}: {e}")
+            force_delete_file(input_path)
             return response
         
         return send_file(output_path, as_attachment=True)
         
     except Exception as e:
         app.logger.error(f"Text conversion error: {e}")
-        return f"Conversion failed: {str(e)}", 500
+        
+        # Provide detailed error messages to user
+        error_msg = str(e)
+        app.logger.error(f"Text conversion error details: {error_msg}")
+        
+        if "TextSizeLimitExceededException" in error_msg:
+            return "Error: Document is too large for translation. Please try a smaller document or contact support.", 400
+        elif "UnsupportedDocumentException" in error_msg:
+            return "Error: This PDF format is not supported. The document may be corrupted, password-protected, or have complex formatting.", 400
+        elif "UnsupportedLanguagePairException" in error_msg:
+            return "Error: This language combination is not supported by the translation service.", 400
+        elif "AccessDeniedException" in error_msg:
+            return "Error: AWS service access denied. Please contact support.", 500
+        elif "translate_text" in error_msg:
+            return "Error: Translation service failed. The document may be too large or contain unsupported content.", 400
+        elif "Could not extract text" in error_msg:
+            return "Error: No text could be extracted from this document. Please ensure the file contains readable text.", 400
+        elif "PyMuPDF" in error_msg or "reportlab" in error_msg:
+            return "Error: PDF processing libraries not available. Please contact support.", 500
+        elif "Textract" in error_msg:
+            return "Error: Text extraction service failed. The document may be in an unsupported format or too complex.", 400
+        else:
+            return f"Error: {error_msg[:200]}{'...' if len(error_msg) > 200 else ''}", 500
 
 def convert_txt_to_pdf(input_path, output_path):
     """Convert TXT file to PDF with proper Unicode support and formatting"""
@@ -501,7 +778,7 @@ def convert_txt_to_pdf(input_path, output_path):
         leading=14,  # Line spacing
         alignment=TA_LEFT,
         spaceAfter=6,
-        fontName='Helvetica'  # Unicode-compatible font
+        fontName='Helvetica'  # Will fallback to DejaVu for Unicode
     )
     
     # Custom style for headers (lines that look like headers)
@@ -538,18 +815,528 @@ def convert_txt_to_pdf(input_path, output_path):
         # Choose appropriate style
         style = header_style if is_header else body_style
         
-        # Create paragraph with proper encoding
+        # Create paragraph with proper encoding for non-Latin scripts
         try:
-            para = Paragraph(line, style)
-            story.append(para)
+            # For Arabic/Chinese text, use a more permissive approach
+            if any(ord(c) > 255 for c in line):  # Non-Latin characters detected
+                # Use HTML entities for better compatibility
+                import html
+                escaped_line = html.escape(line)
+                para = Paragraph(escaped_line, style)
+                story.append(para)
+            else:
+                # Standard Latin text
+                para = Paragraph(line, style)
+                story.append(para)
         except Exception as e:
-            # Fallback for problematic characters
-            safe_line = line.encode('ascii', 'ignore').decode('ascii')
-            para = Paragraph(safe_line, style)
+            # If ReportLab can't handle the text, create a readable fallback
+            app.logger.warning(f"PDF encoding issue for line: {line[:50]}... Error: {e}")
+            # Create a note about the untranslatable content
+            fallback_text = f"[Arabic/Chinese text - {len(line)} characters - ReportLab cannot display]"
+            para = Paragraph(fallback_text, style)
             story.append(para)
     
     # Build PDF
     doc.build(story)
+
+def translate_with_format_preservation(input_path, file_ext, base_filename, lang_code, lang_name, translate_client, textract_client):
+    """Translate file while preserving original format"""
+    # For Arabic/Chinese, use text-based translation due to font limitations
+    if lang_code in ['ar', 'zh']:
+        return translate_to_text_based(input_path, file_ext, base_filename, lang_code, lang_name, translate_client, textract_client)
+    
+    # For Latin scripts, try PyMuPDF format preservation
+    if file_ext == 'pdf':
+        return translate_pdf_pymupdf(input_path, base_filename, lang_code, lang_name, translate_client)
+    elif file_ext == 'txt':
+        return translate_txt_preserve_format(input_path, base_filename, lang_code, lang_name, translate_client)
+    elif file_ext in ['jpg', 'jpeg', 'png']:
+        return translate_image_to_pdf(input_path, base_filename, lang_code, lang_name, translate_client, textract_client)
+    else:
+        raise ValueError(f"Unsupported file format: {file_ext}")
+
+def translate_pdf_pymupdf(input_path, base_filename, lang_code, lang_name, translate_client):
+    """Translate PDF while preserving formatting (Latin scripts only)"""
+    if not PYMUPDF_AVAILABLE:
+        raise ImportError("PyMuPDF is required for format-preserving PDF translation")
+    
+    output_filename = f"{base_filename}-{lang_name}.pdf"
+    output_path = os.path.join(CONVERTED_FOLDER, output_filename)
+    
+    # Open the PDF
+    doc = fitz.open(input_path)
+    
+    for page_num in range(len(doc)):
+        page = doc[page_num]
+        text_dict = page.get_text("dict")
+        
+        # Process each text block
+        for block in text_dict["blocks"]:
+            if "lines" not in block:
+                continue
+                
+            for line in block["lines"]:
+                for span in line["spans"]:
+                    original_text = span["text"].strip()
+                    if not original_text or len(original_text) < 2:
+                        continue
+                    
+                    try:
+                        translated_text = translate_text_chunked(original_text, translate_client, lang_code)
+                        bbox = span["bbox"]
+                        size = span["size"]
+                        
+                        # Clear original text with larger rectangle to avoid remnants
+                        expanded_rect = fitz.Rect(bbox[0]-2, bbox[1]-2, bbox[2]+2, bbox[3]+2)
+                        page.draw_rect(expanded_rect, color=(1, 1, 1), fill=True)
+                        
+                        # Insert translated text with better positioning
+                        page.insert_text(
+                            (bbox[0], bbox[3] - 2),  # Better baseline positioning
+                            translated_text,
+                            fontname="helv",
+                            fontsize=size,
+                            color=0
+                        )
+                        
+                    except Exception as e:
+                        app.logger.warning(f"Translation failed for '{original_text[:20]}...': {e}")
+                        continue
+    
+    doc.save(output_path)
+    doc.close()
+    return output_path
+
+def translate_pdf_preserve_format_old(input_path, base_filename, lang_code, lang_name, translate_client):
+    """Translate PDF while preserving layout and form fields"""
+    if not PYMUPDF_AVAILABLE:
+        raise ImportError("PyMuPDF is required for PDF translation. Please install: pip install PyMuPDF")
+    
+    output_filename = f"{base_filename}-{lang_name}.pdf"
+    output_path = os.path.join(CONVERTED_FOLDER, output_filename)
+    
+    try:
+        # Open PDF with PyMuPDF
+        doc = fitz.open(input_path)
+        new_doc = fitz.open()
+        
+        for page_num in range(len(doc)):
+            page = doc[page_num]
+            new_page = new_doc.new_page(width=page.rect.width, height=page.rect.height)
+            
+            # Extract text blocks with positioning
+            text_dict = page.get_text("dict")
+            
+            # Copy images and graphics
+            new_page.show_pdf_page(page.rect, doc, page_num)
+            
+            # Process text blocks
+            for block in text_dict["blocks"]:
+                if "lines" in block:
+                    for line in block["lines"]:
+                        for span in line["spans"]:
+                            text = span["text"].strip()
+                            if text:
+                                # Translate text in chunks
+                                translated_text = translate_text_chunked(text, translate_client, lang_code)
+                                
+                                # Place translated text at original position
+                                new_page.insert_text(
+                                    (span["bbox"][0], span["bbox"][1]),
+                                    translated_text,
+                                    fontname=span["font"],
+                                    fontsize=span["size"],
+                                    color=span.get("color", 0)
+                                )
+        
+        # Save translated PDF
+        new_doc.save(output_path)
+        new_doc.close()
+        doc.close()
+        
+        return output_path
+        
+    except Exception as e:
+        # Fallback to text-based translation with warning
+        app.logger.warning(f"PDF translation fallback for {input_path}: {e}")
+        return translate_pdf_fallback(input_path, base_filename, lang_code, lang_name, translate_client)
+
+def translate_txt_preserve_format(input_path, base_filename, lang_code, lang_name, translate_client):
+    """Translate TXT file while preserving structure"""
+    output_filename = f"{base_filename}-{lang_name}.txt"
+    output_path = os.path.join(CONVERTED_FOLDER, output_filename)
+    
+    # Read text with encoding detection
+    if CHARDET_AVAILABLE:
+        with open(input_path, 'rb') as f:
+            raw_data = f.read()
+            encoding_result = chardet.detect(raw_data)
+            encoding = encoding_result['encoding'] or 'utf-8'
+    else:
+        encoding = 'utf-8'
+    
+    with open(input_path, 'r', encoding=encoding, errors='replace') as f:
+        content = f.read()
+    
+    # Translate while preserving line structure
+    lines = content.split('\n')
+    translated_lines = []
+    
+    for line in lines:
+        if line.strip():
+            translated_line = translate_text_chunked(line, translate_client, lang_code)
+            translated_lines.append(translated_line)
+        else:
+            translated_lines.append('')  # Preserve empty lines
+    
+    # Save translated text
+    with open(output_path, 'w', encoding='utf-8') as f:
+        f.write('\n'.join(translated_lines))
+    
+    return output_path
+
+def translate_to_text_based(input_path, file_ext, base_filename, lang_code, lang_name, translate_client, textract_client):
+    """Fallback to text-based translation for Arabic/Chinese"""
+    # Extract text from file
+    extracted_text = extract_text_from_file(input_path, textract_client)
+    if not extracted_text:
+        raise Exception("Could not extract text from file")
+    
+    # Translate text
+    translated_text = translate_text_chunked(extracted_text, translate_client, lang_code)
+    
+    # Return as TXT file for Arabic/Chinese
+    output_filename = f"{base_filename}-{lang_name}.txt"
+    output_path = os.path.join(CONVERTED_FOLDER, output_filename)
+    with open(output_path, 'w', encoding='utf-8') as f:
+        f.write(translated_text)
+    
+    return output_path
+
+def translate_image_to_pdf(input_path, base_filename, lang_code, lang_name, translate_client, textract_client):
+    """Extract text from image and translate"""
+    # Extract text using Textract
+    with open(input_path, 'rb') as f:
+        response = textract_client.detect_document_text(
+            Document={'Bytes': f.read()}
+        )
+    
+    extracted_text = ""
+    for item in response['Blocks']:
+        if item['BlockType'] == 'LINE':
+            extracted_text += item['Text'] + '\n'
+    
+    # Translate extracted text
+    translated_text = translate_text_chunked(extracted_text, translate_client, lang_code)
+    
+    # For Arabic/Chinese from images, return as TXT
+    if lang_code in ['ar', 'zh']:
+        output_filename = f"{base_filename}-{lang_name}.txt"
+        output_path = os.path.join(CONVERTED_FOLDER, output_filename)
+        with open(output_path, 'w', encoding='utf-8') as f:
+            f.write(translated_text)
+    else:
+        # For Latin scripts, create PDF
+        output_filename = f"{base_filename}-{lang_name}.pdf"
+        output_path = os.path.join(CONVERTED_FOLDER, output_filename)
+        convert_txt_to_pdf_from_text(translated_text, output_path)
+    
+    return output_path
+
+def translate_pdf_fallback(input_path, base_filename, lang_code, lang_name, translate_client):
+    """Fallback PDF translation using text extraction"""
+    output_filename = f"{base_filename}-{lang_name}.pdf"
+    output_path = os.path.join(CONVERTED_FOLDER, output_filename)
+    
+    app.logger.info(f"Using PDF fallback translation for {input_path}")
+    
+    # Extract text using PyPDF2 with better encoding handling
+    pdf_reader = PyPDF2.PdfReader(open(input_path, "rb"))
+    extracted_text = ""
+    for page_num, page in enumerate(pdf_reader.pages):
+        try:
+            text = page.extract_text()
+            if text:
+                extracted_text += text + "\n"
+                app.logger.info(f"Extracted {len(text)} chars from page {page_num + 1}")
+        except Exception as e:
+            app.logger.warning(f"Failed to extract text from page {page_num + 1}: {e}")
+    
+    if not extracted_text.strip():
+        raise Exception("No text could be extracted from PDF using PyPDF2")
+    
+    # Clean up PyPDF2's fragmented text
+    extracted_text = clean_pypdf2_text(extracted_text)
+    app.logger.info(f"Total extracted and cleaned text: {len(extracted_text)} characters")
+    
+    # Translate text
+    translated_text = translate_text_chunked(extracted_text, translate_client, lang_code)
+    
+    # Create formatted PDF
+    convert_txt_to_pdf_from_text(translated_text, output_path)
+    
+    return output_path
+
+def translate_text_chunked(text, translate_client, target_lang):
+    """Translate text in chunks to handle AWS Translate limits"""
+    if not text or not text.strip():
+        return ""
+    
+    # Clean and validate input text
+    text = text.strip()
+    if len(text) < 3:  # Skip very short text
+        return text
+    
+    app.logger.info(f"Translating {len(text)} characters to {target_lang}")
+    
+    # Handle single small text
+    if len(text) <= 4000:  # More conservative limit
+        try:
+            response = translate_client.translate_text(
+                Text=text,
+                SourceLanguageCode='auto',
+                TargetLanguageCode=target_lang
+            )
+            translated = response['TranslatedText']
+            app.logger.info(f"Successfully translated small text ({len(text)} -> {len(translated)} chars)")
+            return translated
+        except Exception as e:
+            app.logger.error(f"Translation failed for small text: {str(e)[:200]}...")
+            # Check if it's a specific AWS error
+            if "UnsupportedLanguagePairException" in str(e):
+                raise Exception(f"Language pair not supported for translation to {target_lang}")
+            elif "TextSizeLimitExceededException" in str(e):
+                raise Exception("Text is too large for translation")
+            else:
+                raise e
+    
+    # For large text, split by paragraphs first
+    paragraphs = text.split('\n\n')
+    translated_paragraphs = []
+    current_chunk = ""
+    chunk_count = 0
+    
+    for paragraph in paragraphs:
+        paragraph = paragraph.strip()
+        if not paragraph:
+            continue
+            
+        # If single paragraph is too large, split by sentences
+        if len(paragraph) > 3500:
+            sentences = paragraph.split('. ')
+            for sentence in sentences:
+                sentence = sentence.strip()
+                if not sentence:
+                    continue
+                    
+                if len(current_chunk + sentence) <= 3000:  # Conservative buffer
+                    current_chunk += sentence + ". "
+                else:
+                    if current_chunk.strip():
+                        try:
+                            chunk_count += 1
+                            app.logger.info(f"Translating chunk {chunk_count} ({len(current_chunk)} chars)")
+                            response = translate_client.translate_text(
+                                Text=current_chunk.strip(),
+                                SourceLanguageCode='auto',
+                                TargetLanguageCode=target_lang
+                            )
+                            translated_paragraphs.append(response['TranslatedText'])
+                        except Exception as e:
+                            app.logger.error(f"Translation failed for chunk {chunk_count}: {str(e)[:200]}...")
+                            raise e
+                    current_chunk = sentence + ". "
+        else:
+            # Normal paragraph processing
+            if len(current_chunk + paragraph) <= 3000:
+                current_chunk += paragraph + "\n\n"
+            else:
+                if current_chunk.strip():
+                    try:
+                        chunk_count += 1
+                        app.logger.info(f"Translating chunk {chunk_count} ({len(current_chunk)} chars)")
+                        response = translate_client.translate_text(
+                            Text=current_chunk.strip(),
+                            SourceLanguageCode='auto',
+                            TargetLanguageCode=target_lang
+                        )
+                        translated_paragraphs.append(response['TranslatedText'])
+                    except Exception as e:
+                        app.logger.error(f"Translation failed for chunk {chunk_count}: {str(e)[:200]}...")
+                        raise e
+                current_chunk = paragraph + "\n\n"
+    
+    # Translate remaining chunk
+    if current_chunk.strip():
+        try:
+            chunk_count += 1
+            app.logger.info(f"Translating final chunk {chunk_count} ({len(current_chunk)} chars)")
+            response = translate_client.translate_text(
+                Text=current_chunk.strip(),
+                SourceLanguageCode='auto',
+                TargetLanguageCode=target_lang
+            )
+            translated_paragraphs.append(response['TranslatedText'])
+        except Exception as e:
+            app.logger.error(f"Translation failed for final chunk: {str(e)[:200]}...")
+            raise e
+    
+    final_result = '\n\n'.join(translated_paragraphs)
+    app.logger.info(f"Translation completed: {chunk_count} chunks, {len(final_result)} final chars")
+    return final_result
+
+def convert_txt_to_pdf_from_text(text_content, output_path):
+    """Convert text content directly to PDF with formatting"""
+    if not REPORTLAB_AVAILABLE:
+        raise ImportError("ReportLab is required for PDF creation. Please install: pip install reportlab")
+    
+    # Create PDF document
+    doc = SimpleDocTemplate(
+        output_path,
+        pagesize=letter,
+        rightMargin=0.75*inch,
+        leftMargin=0.75*inch,
+        topMargin=1*inch,
+        bottomMargin=1*inch
+    )
+    
+    # Define styles
+    styles = getSampleStyleSheet()
+    
+    body_style = ParagraphStyle(
+        'CustomBody',
+        parent=styles['Normal'],
+        fontSize=11,
+        leading=14,
+        alignment=TA_LEFT,
+        spaceAfter=6,
+        fontName='Helvetica'
+    )
+    
+    header_style = ParagraphStyle(
+        'CustomHeader',
+        parent=styles['Heading2'],
+        fontSize=13,
+        leading=16,
+        alignment=TA_LEFT,
+        spaceAfter=8,
+        spaceBefore=12,
+        fontName='Helvetica-Bold'
+    )
+    
+    # Process text content
+    story = []
+    lines = text_content.split('\n')
+    
+    for line in lines:
+        line = line.strip()
+        
+        if not line:
+            story.append(Spacer(1, 6))
+            continue
+        
+        # Detect headers
+        is_header = (
+            len(line) < 50 and 
+            (line.isupper() or 
+             line.endswith(':') or 
+             any(word in line.upper() for word in ['EXPERIENCE', 'EDUCATION', 'SKILLS', 'CONTACT', 'SUMMARY', 'OBJECTIVE']))
+        )
+        
+        style = header_style if is_header else body_style
+        
+        try:
+            # For Arabic/Chinese text, use a more permissive approach
+            if any(ord(c) > 255 for c in line):  # Non-Latin characters detected
+                # Use HTML entities for better compatibility
+                import html
+                escaped_line = html.escape(line)
+                para = Paragraph(escaped_line, style)
+                story.append(para)
+            else:
+                # Standard Latin text
+                para = Paragraph(line, style)
+                story.append(para)
+        except Exception as e:
+            # If ReportLab can't handle the text, create a readable fallback
+            app.logger.warning(f"PDF encoding issue for line: {line[:50]}... Error: {e}")
+            # Create a note about the untranslatable content
+            fallback_text = f"[Arabic/Chinese text - {len(line)} characters - ReportLab cannot display]"
+            para = Paragraph(fallback_text, style)
+            story.append(para)
+    
+    doc.build(story)
+
+def format_text_for_readability(text):
+    """Format translated text for better readability"""
+    if not text:
+        return text
+    
+    # Split into paragraphs
+    paragraphs = text.split('\n\n')
+    formatted_paragraphs = []
+    
+    for para in paragraphs:
+        para = para.strip()
+        if para:
+            # Ensure proper line breaks for long paragraphs
+            sentences = para.split('. ')
+            if len(sentences) > 1:
+                # Rejoin sentences with proper spacing
+                formatted_para = '. '.join(sentences)
+                if not formatted_para.endswith('.'):
+                    formatted_para += '.'
+                formatted_paragraphs.append(formatted_para)
+            else:
+                formatted_paragraphs.append(para)
+    
+    return '\n\n'.join(formatted_paragraphs)
+
+def clean_pypdf2_text(text):
+    """Clean up PyPDF2's fragmented text extraction"""
+    if not text:
+        return text
+    
+    lines = text.split('\n')
+    cleaned_lines = []
+    current_paragraph = []
+    
+    for line in lines:
+        line = line.strip()
+        if not line:
+            # Empty line - end current paragraph
+            if current_paragraph:
+                cleaned_lines.append(' '.join(current_paragraph))
+                current_paragraph = []
+            cleaned_lines.append('')  # Preserve paragraph breaks
+        else:
+            # Check if this looks like a continuation of previous line
+            if (current_paragraph and 
+                len(line) > 3 and 
+                not line[0].isupper() and 
+                not line.endswith('.') and
+                not line.endswith(':')):
+                # Likely continuation - add to current paragraph
+                current_paragraph.append(line)
+            else:
+                # New sentence/paragraph
+                if current_paragraph:
+                    cleaned_lines.append(' '.join(current_paragraph))
+                current_paragraph = [line]
+    
+    # Don't forget the last paragraph
+    if current_paragraph:
+        cleaned_lines.append(' '.join(current_paragraph))
+    
+    # Join with proper spacing
+    result = '\n'.join(cleaned_lines)
+    
+    # Remove excessive whitespace
+    import re
+    result = re.sub(r'\n\s*\n\s*\n', '\n\n', result)  # Max 2 consecutive newlines
+    result = re.sub(r' +', ' ', result)  # Multiple spaces to single space
+    
+    return result.strip()
 
 def extract_text_from_file(file_path, textract_client):
     """Extract text from various file types using AWS Textract or direct reading"""
@@ -557,35 +1344,93 @@ def extract_text_from_file(file_path, textract_client):
     
     try:
         if file_ext == 'txt':
-            # Direct text file reading
-            with open(file_path, 'r', encoding='utf-8') as f:
+            # Direct text file reading with encoding detection
+            if CHARDET_AVAILABLE:
+                with open(file_path, 'rb') as f:
+                    raw_data = f.read()
+                    encoding_result = chardet.detect(raw_data)
+                    encoding = encoding_result['encoding'] or 'utf-8'
+            else:
+                encoding = 'utf-8'
+            
+            with open(file_path, 'r', encoding=encoding, errors='replace') as f:
                 return f.read()
         
         elif file_ext == 'pdf':
-            # Use Textract for PDF
-            with open(file_path, 'rb') as f:
-                response = textract_client.detect_document_text(
-                    Document={'Bytes': f.read()}
-                )
-            
-            text = ""
-            for item in response['Blocks']:
-                if item['BlockType'] == 'LINE':
-                    text += item['Text'] + '\n'
-            return text
+            # Try Textract first, fallback to PyPDF2
+            try:
+                with open(file_path, 'rb') as f:
+                    file_bytes = f.read()
+                    # Check file size (Textract limit is 10MB)
+                    if len(file_bytes) > 10 * 1024 * 1024:
+                        app.logger.info(f"PDF file too large ({len(file_bytes)} bytes) for Textract, using PyPDF2")
+                        raise Exception("File too large for Textract")
+                    
+                    app.logger.info(f"Attempting Textract on PDF ({len(file_bytes)} bytes)")
+                    response = textract_client.detect_document_text(
+                        Document={'Bytes': file_bytes}
+                    )
+                
+                text = ""
+                for item in response['Blocks']:
+                    if item['BlockType'] == 'LINE':
+                        text += item['Text'] + '\n'
+                
+                if text.strip():
+                    app.logger.info(f"Textract successfully extracted {len(text)} characters from PDF")
+                    return text
+                else:
+                    app.logger.warning("Textract returned no text, falling back to PyPDF2")
+                    raise Exception("Textract returned no text")
+                    
+            except Exception as e:
+                # Fallback to PyPDF2 for unsupported PDFs
+                app.logger.warning(f"Textract failed for PDF: {str(e)[:200]}... Using PyPDF2 fallback")
+                try:
+                    pdf_reader = PyPDF2.PdfReader(open(file_path, "rb"))
+                    text = ""
+                    for page in pdf_reader.pages:
+                        page_text = page.extract_text()
+                        if page_text:
+                            text += page_text + "\n"
+                    
+                    if text.strip():
+                        # Clean up PyPDF2's fragmented text extraction
+                        cleaned_text = clean_pypdf2_text(text)
+                        app.logger.info(f"PyPDF2 extracted {len(text)} chars, cleaned to {len(cleaned_text)} chars")
+                        return cleaned_text
+                    else:
+                        app.logger.warning("PyPDF2 extracted no text from PDF")
+                        return "[No text could be extracted from this PDF]"
+                except Exception as pdf_error:
+                    app.logger.error(f"Both Textract and PyPDF2 failed: {pdf_error}")
+                    return "[Error: Could not extract text from this PDF]"
         
         elif file_ext in ['jpg', 'jpeg', 'png']:
-            # Use Textract for images
-            with open(file_path, 'rb') as f:
-                response = textract_client.detect_document_text(
-                    Document={'Bytes': f.read()}
-                )
-            
-            text = ""
-            for item in response['Blocks']:
-                if item['BlockType'] == 'LINE':
-                    text += item['Text'] + '\n'
-            return text
+            # Use Textract for images with better error handling
+            try:
+                with open(file_path, 'rb') as f:
+                    file_bytes = f.read()
+                    app.logger.info(f"Attempting Textract on image ({len(file_bytes)} bytes)")
+                    response = textract_client.detect_document_text(
+                        Document={'Bytes': file_bytes}
+                    )
+                
+                text = ""
+                for item in response['Blocks']:
+                    if item['BlockType'] == 'LINE':
+                        text += item['Text'] + '\n'
+                
+                if text.strip():
+                    app.logger.info(f"Textract successfully extracted {len(text)} characters from image")
+                    return text
+                else:
+                    app.logger.warning("Textract returned no text from image")
+                    return "[No text could be extracted from this image]"
+                    
+            except Exception as e:
+                app.logger.error(f"Textract failed for image: {str(e)[:200]}...")
+                return f"[Error: Could not extract text from this image: {str(e)[:100]}...]"
         
         else:
             return None
@@ -1004,6 +1849,58 @@ def purchase_cancel():
 
 
 
+
+# ========================================
+# DEBUG AND TESTING ROUTES
+# ========================================
+@app.route('/debug/aws-test')
+@login_required
+def debug_aws_test():
+    """Debug route to test AWS services connectivity"""
+    import boto3
+    results = {}
+    
+    try:
+        # Test Translate
+        translate_client = boto3.client('translate', region_name=os.getenv('AWS_REGION', 'us-east-1'))
+        test_response = translate_client.translate_text(
+            Text="Hello world",
+            SourceLanguageCode='en',
+            TargetLanguageCode='es'
+        )
+        results['translate'] = f"✓ Working: {test_response['TranslatedText']}"
+    except Exception as e:
+        results['translate'] = f"✗ Failed: {str(e)[:100]}..."
+    
+    try:
+        # Test Textract
+        textract_client = boto3.client('textract', region_name=os.getenv('AWS_REGION', 'us-east-1'))
+        # Create a simple test image with text
+        from PIL import Image, ImageDraw, ImageFont
+        import io
+        
+        img = Image.new('RGB', (200, 100), color='white')
+        draw = ImageDraw.Draw(img)
+        draw.text((10, 10), "Test text", fill='black')
+        
+        img_bytes = io.BytesIO()
+        img.save(img_bytes, format='PNG')
+        img_bytes.seek(0)
+        
+        response = textract_client.detect_document_text(
+            Document={'Bytes': img_bytes.getvalue()}
+        )
+        
+        text_found = any(block.get('Text', '').strip() for block in response.get('Blocks', []))
+        results['textract'] = f"✓ Working: Found text = {text_found}"
+    except Exception as e:
+        results['textract'] = f"✗ Failed: {str(e)[:100]}..."
+    
+    # Test region and credentials
+    results['region'] = os.getenv('AWS_REGION', 'us-east-1')
+    results['access_key'] = f"{os.getenv('AWS_ACCESS_KEY_ID', 'Not set')[:10]}..."
+    
+    return f"<pre>{chr(10).join(f'{k}: {v}' for k, v in results.items())}</pre>"
 
 # ========================================
 # APPLICATION STARTUP

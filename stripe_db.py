@@ -1,4 +1,4 @@
-import psycopg as psycopg2  # type: ignore
+import psycopg2
 import os
 import threading
 from urllib.parse import urlparse
