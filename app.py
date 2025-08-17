@@ -13,6 +13,23 @@ import PyPDF2  # PDF reading and processing
 from docx import Document  # Word document creation
 import io
 import datetime
+# Character encoding detection (with fallback)
+try:
+    import chardet
+    CHARDET_AVAILABLE = True
+except ImportError:
+    CHARDET_AVAILABLE = False
+
+# ReportLab PDF generation libraries (with fallback handling)
+try:
+    from reportlab.lib.pagesizes import letter
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.units import inch
+    from reportlab.lib.enums import TA_LEFT
+    REPORTLAB_AVAILABLE = True
+except ImportError:
+    REPORTLAB_AVAILABLE = False
 
 # Authentication and API libraries
 import requests
@@ -95,14 +112,15 @@ def verify_token(token):
     if not key_data:
         raise Exception("Public key not found for token.")
 
-    # Verify and decode JWT token
+    # Verify and decode JWT token with clock skew tolerance
     public_key = RSAAlgorithm.from_jwk(key_data)
     return jwt.decode(
         token,
         public_key,
         algorithms=["RS256"],
         audience=COGNITO_CLIENT_ID,
-        issuer=f"https://cognito-idp.{COGNITO_REGION}.amazonaws.com/{COGNITO_USERPOOL_ID}"
+        issuer=f"https://cognito-idp.{COGNITO_REGION}.amazonaws.com/{COGNITO_USERPOOL_ID}",
+        leeway=60  # Allow 60 seconds clock skew tolerance
     )
 
 def login_required(f):
@@ -253,17 +271,10 @@ def convert_file():
     # ========================================
     output_path = None
     
-    # TXT to PDF conversion
+    # TXT to PDF conversion with ReportLab
     if conversion_type == "txt_to_pdf":
-        from fpdf import FPDF
-        pdf = FPDF()
-        pdf.add_page()
-        pdf.set_font("Arial", size=12)
-        with open(input_path, "r") as f:
-            for line in f:
-                pdf.cell(200, 10, txt=line, ln=True)
         output_path = os.path.join(CONVERTED_FOLDER, filename.rsplit(".", 1)[0] + ".pdf")
-        pdf.output(output_path)
+        convert_txt_to_pdf(input_path, output_path)
 
     # JPG to PNG conversion
     elif conversion_type == "jpg_to_png":
@@ -445,6 +456,100 @@ def text_convert():
     except Exception as e:
         app.logger.error(f"Text conversion error: {e}")
         return f"Conversion failed: {str(e)}", 500
+
+def convert_txt_to_pdf(input_path, output_path):
+    """Convert TXT file to PDF with proper Unicode support and formatting"""
+    if not REPORTLAB_AVAILABLE:
+        raise ImportError("ReportLab is required for TXT to PDF conversion. Please install: pip install reportlab")
+    
+    # Auto-detect file encoding
+    if CHARDET_AVAILABLE:
+        with open(input_path, 'rb') as f:
+            raw_data = f.read()
+            encoding_result = chardet.detect(raw_data)
+            encoding = encoding_result['encoding'] or 'utf-8'
+    else:
+        encoding = 'utf-8'  # Default to UTF-8 if chardet not available
+    
+    # Read text with detected encoding
+    try:
+        with open(input_path, 'r', encoding=encoding) as f:
+            text_content = f.read()
+    except UnicodeDecodeError:
+        # Fallback to utf-8 with error handling
+        with open(input_path, 'r', encoding='utf-8', errors='replace') as f:
+            text_content = f.read()
+    
+    # Create PDF document
+    doc = SimpleDocTemplate(
+        output_path,
+        pagesize=letter,
+        rightMargin=0.75*inch,
+        leftMargin=0.75*inch,
+        topMargin=1*inch,
+        bottomMargin=1*inch
+    )
+    
+    # Define styles
+    styles = getSampleStyleSheet()
+    
+    # Custom style for body text with better formatting
+    body_style = ParagraphStyle(
+        'CustomBody',
+        parent=styles['Normal'],
+        fontSize=11,
+        leading=14,  # Line spacing
+        alignment=TA_LEFT,
+        spaceAfter=6,
+        fontName='Helvetica'  # Unicode-compatible font
+    )
+    
+    # Custom style for headers (lines that look like headers)
+    header_style = ParagraphStyle(
+        'CustomHeader',
+        parent=styles['Heading2'],
+        fontSize=13,
+        leading=16,
+        alignment=TA_LEFT,
+        spaceAfter=8,
+        spaceBefore=12,
+        fontName='Helvetica-Bold'
+    )
+    
+    # Process text content
+    story = []
+    lines = text_content.split('\n')
+    
+    for line in lines:
+        line = line.strip()
+        
+        if not line:  # Empty line - add space
+            story.append(Spacer(1, 6))
+            continue
+        
+        # Detect if line looks like a header (all caps, short, or ends with colon)
+        is_header = (
+            len(line) < 50 and 
+            (line.isupper() or 
+             line.endswith(':') or 
+             any(word in line.upper() for word in ['EXPERIENCE', 'EDUCATION', 'SKILLS', 'CONTACT', 'SUMMARY', 'OBJECTIVE']))
+        )
+        
+        # Choose appropriate style
+        style = header_style if is_header else body_style
+        
+        # Create paragraph with proper encoding
+        try:
+            para = Paragraph(line, style)
+            story.append(para)
+        except Exception as e:
+            # Fallback for problematic characters
+            safe_line = line.encode('ascii', 'ignore').decode('ascii')
+            para = Paragraph(safe_line, style)
+            story.append(para)
+    
+    # Build PDF
+    doc.build(story)
 
 def extract_text_from_file(file_path, textract_client):
     """Extract text from various file types using AWS Textract or direct reading"""
