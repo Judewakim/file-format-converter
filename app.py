@@ -319,6 +319,23 @@ def convert_file():
         output_path = os.path.join(CONVERTED_FOLDER, filename.rsplit(".", 1)[0] + ".docx")
         doc.save(output_path)
 
+    # SVG to PNG conversion
+    elif conversion_type == "svg_to_png":
+        try:
+            import cairosvg
+            output_path = os.path.join(CONVERTED_FOLDER, filename.rsplit(".", 1)[0] + ".png")
+            cairosvg.svg2png(url=input_path, write_to=output_path)
+        except ImportError:
+            # Fallback method using Pillow with svg2rlg
+            try:
+                from reportlab.graphics import renderPM
+                from svglib.svglib import renderSVG
+                drawing = renderSVG.renderSVG(input_path)
+                output_path = os.path.join(CONVERTED_FOLDER, filename.rsplit(".", 1)[0] + ".png")
+                renderPM.drawToFile(drawing, output_path, fmt="PNG")
+            except ImportError:
+                return "Required libraries not installed for SVG conversion", 400
+
     else:
         return "Unsupported conversion type", 400
 

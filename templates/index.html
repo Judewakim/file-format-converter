@@ -283,8 +283,8 @@
         <br>
         <form id="convert-form" action="{{ url_for('convert_file') }}" method="POST" enctype="multipart/form-data">
           <div id="drop-zone" class="upload-area">
-            <p>Drag & Drop your file here (TXT, JPG, PDF) or <span id="click-select" style="text-decoration: underline; cursor: pointer;">click to browse</span></p>
-            <input type="file" name="file" id="file-input" hidden required />
+            <p>Drag & Drop your file here (TXT, JPG, SVG, PDF) or <span id="click-select" style="text-decoration: underline; cursor: pointer;">click to browse</span></p>
+            <input type="file" name="file" id="file-input" accept=".txt,.jpg,.jpeg,.pdf,.svg" hidden required />
           </div>
 
           <p id="file-name" style="font-style: italic; margin-top: 8px; color: #555;">No file selected</p>
@@ -295,6 +295,7 @@
             <option value="txt_to_pdf">TXT → PDF</option>
             <option value="jpg_to_png">JPG → PNG</option>
             <option value="pdf_to_word">PDF → Word</option>
+            <option value="svg_to_png">SVG → PNG</option>
           </select>
 
           <div id="progress-container" style="display:none; margin-top:10px;">
