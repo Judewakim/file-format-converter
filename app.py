@@ -322,14 +322,14 @@ def convert_file():
     # SVG to PNG conversion
     elif conversion_type == "svg_to_png":
         try:
-            import cairosvg
+            import cairosvg  # type: ignore
             output_path = os.path.join(CONVERTED_FOLDER, filename.rsplit(".", 1)[0] + ".png")
             cairosvg.svg2png(url=input_path, write_to=output_path)
         except ImportError:
             # Fallback method using Pillow with svg2rlg
             try:
-                from reportlab.graphics import renderPM
-                from svglib.svglib import renderSVG
+                from reportlab.graphics import renderPM  # type: ignore
+                from svglib.svglib import renderSVG  # type: ignore
                 drawing = renderSVG.renderSVG(input_path)
                 output_path = os.path.join(CONVERTED_FOLDER, filename.rsplit(".", 1)[0] + ".png")
                 renderPM.drawToFile(drawing, output_path, fmt="PNG")
