@@ -3,53 +3,40 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Purchase Cancelled - Text Converter</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      max-width: 600px;
-      margin: 40px auto;
-      padding: 0 20px;
-      background: #f9f9f9;
-      color: #333;
-      text-align: center;
-    }
-    .cancel-box {
-      background: #f8d7da;
-      border: 1px solid #f5c6cb;
-      border-radius: 8px;
-      padding: 30px;
-      margin: 20px 0;
-    }
-    .cancel-icon {
-      font-size: 48px;
-      color: #dc3545;
-      margin-bottom: 20px;
-    }
-    .btn {
-      display: inline-block;
-      padding: 12px 24px;
-      background-color: #007acc;
-      color: white;
-      text-decoration: none;
-      border-radius: 6px;
-      font-weight: bold;
-      margin: 10px;
-    }
-    .btn:hover {
-      background-color: #005fa3;
-    }
-  </style>
+  <title>Subscription Cancelled - conversions.lol</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
+  <link rel="icon" href="{{ url_for('static', filename='favicon.png') }}" type="image/x-icon" />
 </head>
 <body>
-  <div class="cancel-box">
-    <div class="cancel-icon">❌</div>
-    <h1>Purchase Cancelled</h1>
-    <p>Your subscription purchase was cancelled. No payment has been processed.</p>
-    <p>You can try again anytime or continue using our free service.</p>
-    
-    <a href="{{ url_for('purchase') }}" class="btn">Try Again</a>
-    <a href="{{ url_for('index') }}" class="btn">Continue Free</a>
+  <div class="container">
+    <section style="text-align: center; max-width: 600px; margin: 120px auto;">
+      <h1>Subscription Cancelled</h1>
+      <h2>No worries - you can still use our free features</h2>
+      
+      <div style="background: #1a1a1a; padding: 60px 40px; border-radius: 24px; border: 1px solid #333333; margin: 60px 0;">
+        <h3 style="color: #ffffff; margin-bottom: 30px;">You still have access to:</h3>
+        <ul style="text-align: left; max-width: 400px; margin: 0 auto;">
+          <li>✓ TXT to PDF conversion</li>
+          <li>✓ JPG to PNG conversion</li>
+          <li>✓ PDF to Word conversion</li>
+          <li>✓ SVG to PNG conversion</li>
+          <li>✓ Secure file processing</li>
+        </ul>
+      </div>
+
+      <div style="display: flex; gap: 20px; justify-content: center; flex-wrap: wrap;">
+        <a href="{{ url_for('index') }}" style="display: inline-block; background: #B85450; color: white; padding: 20px 40px; border-radius: 16px; text-decoration: none; font-weight: 500; font-size: 18px; transition: all 0.3s ease;">
+          Continue Converting
+        </a>
+        <a href="{{ url_for('purchase') }}" style="display: inline-block; background: #333333; color: white; padding: 20px 40px; border-radius: 16px; text-decoration: none; font-weight: 500; font-size: 18px; transition: all 0.3s ease;">
+          Try Premium Later
+        </a>
+      </div>
+
+      <p style="margin-top: 40px; color: #666666;">
+        Changed your mind? You can subscribe to premium features anytime. We're here when you're ready.
+      </p>
+    </section>
   </div>
 </body>
 </html>
