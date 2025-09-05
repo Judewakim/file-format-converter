@@ -3,118 +3,74 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Subscribe - Text Converter</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      max-width: 600px;
-      margin: 40px auto;
-      padding: 0 20px;
-      background: #f9f9f9;
-      color: #333;
-    }
-    h1 {
-      border-bottom: 2px solid #007acc;
-      padding-bottom: 10px;
-      margin-bottom: 30px;
-    }
-    label {
-      font-weight: bold;
-      display: block;
-      margin-bottom: 8px;
-      margin-top: 20px;
-    }
-    select, button {
-      font-size: 18px;
-      padding: 12px 20px;
-      margin-bottom: 20px;
-      width: 100%;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-    }
-    button {
-      color: white;
-      background-color: #007acc;
-      border: none;
-      cursor: pointer;
-      transition: background-color 0.3s ease;
-    }
-    button:hover {
-      background-color: #005fa3;
-    }
-    #payment-element {
-      padding: 12px;
-      background: white;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      margin-bottom: 20px;
-    }
-    #payment-message {
-      color: green;
-      margin-top: 20px;
-      font-weight: bold;
-    }
-    #error-message {
-      color: red;
-      margin-top: 20px;
-      font-weight: bold;
-    }
-    .back-home-btn {
-      display: inline-block;
-      margin-bottom: 20px;
-      color: #007acc;
-      text-decoration: none;
-      font-weight: bold;
-    }
-    .back-home-btn:hover {
-      text-decoration: underline;
-    }
-
-    .note-box {
-      margin: 20px 0;
-      padding: 12px;
-      background: #eef6fb;
-      border-left: 4px solid #007acc;
-      font-size: 14px;
-    }
-
-    .loader { display:none; margin-top:10px; }
-  </style>
+  <title>Subscribe - conversions.lol</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
+  <link rel="icon" href="{{ url_for('static', filename='favicon.png') }}" type="image/x-icon" />
 </head>
 <body>
-  <a href="{{ url_for('account') }}" class="back-home-btn">← Back to Account</a>
-  <h1>Purchase Subscription</h1>
+  <a href="{{ url_for('account') }}" class="auth-icon" title="Back to Account">Account</a>
 
-  <div class="note-box">
-    <strong>Security Note:</strong><br>
-    Your card will be stored securely and used for recurring billing by a third party payment processor and is PCI compliant. 
+  <div class="container">
+    <h1>Premium Subscription</h1>
+    <h2>Unlock professional AI-powered features</h2>
+
+    <section style="max-width: 600px; margin: 0 auto;">
+      <h3>What's Included</h3>
+      <ul style="margin-bottom: 40px;">
+        <li>✓ Unlimited AI-powered translations</li>
+        <li>✓ Professional OCR text extraction</li>
+        <li>✓ Support for 4 languages (Spanish, French, Arabic, Chinese)</li>
+        <li>✓ Advanced PDF processing</li>
+        <li>✓ Priority support</li>
+        <li>✓ No file size limits</li>
+      </ul>
+
+      <div style="background: #1a1a1a; padding: 40px; border-radius: 20px; text-align: center; border: 1px solid #333333;">
+        <h3 style="color: #B85450; margin-bottom: 20px;">Monthly Subscription</h3>
+        <div style="font-size: 48px; font-weight: 300; color: #ffffff; margin-bottom: 10px;">$9.99</div>
+        <div style="color: #999999; margin-bottom: 30px;">per month</div>
+        
+        <button id="subscribe-btn" type="button" style="background: #B85450; color: white; font-size: 18px; font-weight: 500; border: none; padding: 20px 40px; border-radius: 16px; cursor: pointer; transition: all 0.3s ease; width: 100%; margin-bottom: 20px;">
+          Subscribe Now
+        </button>
+        
+        <div id="loader" style="display: none; color: #999999; margin-top: 20px;">
+          Processing your request...
+        </div>
+        
+        <div id="error-message" style="color: #B85450; margin-top: 20px; font-weight: 500;"></div>
+      </div>
+
+      <div style="margin-top: 40px; padding: 30px; background: #1a1a1a; border-radius: 16px; border: 1px solid #333333;">
+        <h4 style="color: #ffffff; margin-bottom: 20px;">Security & Privacy</h4>
+        <ul style="color: #cccccc; font-size: 16px;">
+          <li>Secure payment processing via Stripe</li>
+          <li>PCI DSS compliant infrastructure</li>
+          <li>Cancel anytime, no long-term commitment</li>
+          <li>Your files are never stored permanently</li>
+        </ul>
+      </div>
+
+      <div style="margin-top: 30px; padding: 30px; background: #1a1a1a; border-radius: 16px; border: 1px solid #333333;">
+        <h4 style="color: #ffffff; margin-bottom: 20px;">Translation Quality</h4>
+        <ul style="color: #cccccc; font-size: 16px;">
+          <li><strong>Spanish & French:</strong> High accuracy, preserves formatting</li>
+          <li><strong>Arabic & Chinese:</strong> Professional quality, TXT output</li>
+          <li><strong>OCR:</strong> Works with PDF, JPG, PNG - quality depends on source</li>
+        </ul>
+      </div>
+    </section>
   </div>
-
-  <div class="note-box">
-    <strong>Translation Quality & Output:</strong><br>
-    • <strong>Spanish & French:</strong> High accuracy, preserves PDF formatting<br>
-    • <strong>Arabic & Chinese:</strong> Good accuracy, returns TXT format due to font limitations<br>
-    • <strong>OCR Extraction:</strong> Works with PDF, JPG, PNG files - accuracy depends on image quality
-  </div>
-
-  <div>
-    <h3>Monthly Subscription - $9.99/month</h3>
-    <p>Get unlimited file conversions with our premium subscription.</p>
-    
-    <button id="subscribe-btn" type="button">Subscribe Now</button>
-    <div class="loader" id="loader">Processing… please wait.</div>
-  </div>
-
-  <div id="error-message"></div>
 
   <script>
     const subscribeBtn = document.getElementById('subscribe-btn');
     const loader = document.getElementById('loader');
     const errorMessage = document.getElementById('error-message');
 
-    function showLoader(on) {
-      loader.style.display = on ? 'block' : 'none';
-      subscribeBtn.disabled = on;
+    function showLoader(show) {
+      loader.style.display = show ? 'block' : 'none';
+      subscribeBtn.disabled = show;
+      subscribeBtn.style.opacity = show ? '0.6' : '1';
     }
 
     function showError(msg) {

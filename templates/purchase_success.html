@@ -3,53 +3,40 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Subscription Successful - Text Converter</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      max-width: 600px;
-      margin: 40px auto;
-      padding: 0 20px;
-      background: #f9f9f9;
-      color: #333;
-      text-align: center;
-    }
-    .success-box {
-      background: #d4edda;
-      border: 1px solid #c3e6cb;
-      border-radius: 8px;
-      padding: 30px;
-      margin: 20px 0;
-    }
-    .success-icon {
-      font-size: 48px;
-      color: #28a745;
-      margin-bottom: 20px;
-    }
-    .btn {
-      display: inline-block;
-      padding: 12px 24px;
-      background-color: #007acc;
-      color: white;
-      text-decoration: none;
-      border-radius: 6px;
-      font-weight: bold;
-      margin: 10px;
-    }
-    .btn:hover {
-      background-color: #005fa3;
-    }
-  </style>
+  <title>Welcome to Premium - conversions.lol</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
+  <link rel="icon" href="{{ url_for('static', filename='favicon.png') }}" type="image/x-icon" />
 </head>
 <body>
-  <div class="success-box">
-    <div class="success-icon">✅</div>
-    <h1>Subscription Successful!</h1>
-    <p>Thank you for subscribing! Your payment has been processed successfully.</p>
-    <p>You now have access to unlimited file conversions.</p>
-    
-    <a href="{{ url_for('account') }}" class="btn">View Account</a>
-    <a href="{{ url_for('index') }}" class="btn">Start Converting</a>
+  <div class="container">
+    <section style="text-align: center; max-width: 600px; margin: 120px auto;">
+      <h1 style="color: #B85450; margin-bottom: 30px;">Welcome to Premium!</h1>
+      <h2>Your subscription is now active</h2>
+      
+      <div style="background: #1a1a1a; padding: 60px 40px; border-radius: 24px; border: 1px solid #333333; margin: 60px 0;">
+        <h3 style="color: #ffffff; margin-bottom: 30px;">You now have access to:</h3>
+        <ul style="text-align: left; max-width: 400px; margin: 0 auto;">
+          <li>✓ Unlimited AI-powered translations</li>
+          <li>✓ Professional OCR text extraction</li>
+          <li>✓ Advanced PDF processing</li>
+          <li>✓ Priority support</li>
+          <li>✓ No file size limits</li>
+        </ul>
+      </div>
+
+      <div style="display: flex; gap: 20px; justify-content: center; flex-wrap: wrap;">
+        <a href="{{ url_for('index') }}" style="display: inline-block; background: #B85450; color: white; padding: 20px 40px; border-radius: 16px; text-decoration: none; font-weight: 500; font-size: 18px; transition: all 0.3s ease;">
+          Start Converting
+        </a>
+        <a href="{{ url_for('account') }}" style="display: inline-block; background: #333333; color: white; padding: 20px 40px; border-radius: 16px; text-decoration: none; font-weight: 500; font-size: 18px; transition: all 0.3s ease;">
+          View Account
+        </a>
+      </div>
+
+      <p style="margin-top: 40px; color: #666666;">
+        Thank you for choosing conversions.lol Premium. If you have any questions, please don't hesitate to reach out through our feedback form.
+      </p>
+    </section>
   </div>
 </body>
 </html>

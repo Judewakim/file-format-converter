@@ -2,18 +2,43 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Page Not Found - Conversions.lol</title>
-  <style>
-    body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
-    h1 { font-size: 48px; color: #ff5722; }
-    p { font-size: 18px; }
-    a { color: #4a90e2; text-decoration: none; }
-  </style>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Page Not Found - conversions.lol</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
   <link rel="icon" href="{{ url_for('static', filename='favicon.png') }}" type="image/x-icon" />
 </head>
 <body>
-  <h1>404 - Page Not Found</h1>
-  <p>Sorry, we couldn't find that page.</p>
-  <p><a href="{{ url_for('index') }}">Return to Home</a></p>
+  <div class="container">
+    <section style="text-align: center; max-width: 600px; margin: 120px auto;">
+      <h1 style="font-size: 120px; font-weight: 300; color: #333333; margin-bottom: 20px;">404</h1>
+      <h2>Page not found</h2>
+      <p style="font-size: 20px; color: #666666; margin: 40px 0;">
+        The page you're looking for doesn't exist or has been moved.
+      </p>
+      
+      <div style="margin: 60px 0;">
+        <a href="{{ url_for('index') }}" style="display: inline-block; background: #B85450; color: white; padding: 20px 40px; border-radius: 16px; text-decoration: none; font-weight: 500; font-size: 18px; transition: all 0.3s ease; margin-right: 20px;">
+          Go Home
+        </a>
+        <a href="{{ url_for('about') }}" style="display: inline-block; background: #333333; color: white; padding: 20px 40px; border-radius: 16px; text-decoration: none; font-weight: 500; font-size: 18px; transition: all 0.3s ease;">
+          Learn More
+        </a>
+      </div>
+
+      <div style="background: #1a1a1a; padding: 40px; border-radius: 20px; border: 1px solid #333333; margin-top: 60px;">
+        <h3 style="color: #ffffff; margin-bottom: 20px;">Popular Features</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; text-align: left;">
+          <div>
+            <h4 style="color: #B85450; margin-bottom: 10px;">Free Conversions</h4>
+            <p style="color: #cccccc; font-size: 16px;">TXT to PDF, JPG to PNG, PDF to Word, SVG to PNG</p>
+          </div>
+          <div>
+            <h4 style="color: #B85450; margin-bottom: 10px;">Premium AI</h4>
+            <p style="color: #cccccc; font-size: 16px;">Translation, OCR, advanced text processing</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
 </body>
 </html>

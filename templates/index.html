@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Free Online File & Text Converter – Convert JPG, PNG, PDF, Word & TXT Fast</title>
-  <meta name="description" content="Convert files online quickly and free. Use our easy file converter to convert JPG to PNG, PDF to Word, TXT to PDF and more with no signup needed." />
-  <meta name="keywords" content="file converter online, free file conversion, convert files online, jpg to png converter, pdf to word converter, txt to pdf converter, convert pdf to word online" />
+  <title>conversions.lol – Professional File Converter</title>
+  <meta name="description" content="Professional file conversion made beautifully simple. Convert JPG, PNG, PDF, Word, TXT files instantly." />
+  <meta name="keywords" content="file converter, jpg to png, pdf to word, txt to pdf, file conversion" />
   <meta name="robots" content="index, follow" />
   <link rel="canonical" href="https://conversions.lol/" />
   <!-- Open Graph -->
-  <meta property="og:title" content="Fast & Free Online File Converter – Convert JPG, PNG, PDF, Word & TXT Easily" />
-  <meta property="og:description" content="Convert files online quickly and free. Use our easy file converter to convert JPG to PNG, PDF to Word, TXT to PDF and more with no signup needed." />
+  <meta property="og:title" content="conversions.lol – Professional File Converter" />
+  <meta property="og:description" content="Professional file conversion made beautifully simple. Convert JPG, PNG, PDF, Word, TXT files instantly." />
   <meta property="og:url" content="https://conversions.lol/" />
   <meta property="og:type" content="website" />
   <meta property="og:image" content="https://conversions.lol/preview-image.png" />
@@ -21,290 +21,51 @@
     window.dataLayer = window.dataLayer || [];
     function gtag(){dataLayer.push(arguments);}
     gtag('js', new Date());
-
     gtag('config', 'G-0S2LGS3XTD');
   </script>
-
-  <style>
-    /* Top right login/account container */
-    .auth-icon {
-      position: fixed;
-      top: 16px;
-      right: 16px;
-      font-size: 18px;
-      font-weight: bold;
-      background: #f0f0f0;
-      padding: 8px 12px;
-      border-radius: 4px;
-      text-decoration: none;
-      color: #333;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.15);
-      transition: background-color 0.2s ease;
-      z-index: 9999;
-    }
-    .auth-icon:hover {
-      background-color: #ddd;
-      color: #000;
-    }
-    
-    /* Split layout styles */
-    .main-content {
-      display: flex;
-      gap: 20px;
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 20px;
-    }
-    
-    .file-conversions {
-      background: white;
-      padding: 30px;
-      border-radius: 8px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-    }
-    
-    .text-conversions {
-      background: linear-gradient(135deg, #f0f2ff 0%, #fff 100%);
-      padding: 30px;
-      border-radius: 8px;
-      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.2);
-      position: relative;
-      border: 1px solid rgba(102, 126, 234, 0.3);
-    }
-    
-    .text-conversions.locked {
-      background: #f8f8f8;
-      opacity: 0.7;
-      pointer-events: none;
-    }
-    
-    .text-conversions.locked #text-drop-zone {
-      opacity: 1 !important;
-      background-color: #f9fbfc !important;
-      border: 2.5px dashed #8aa9b1 !important;
-      border-radius: 12px !important;
-      padding: 35px 20px !important;
-      color: #5f7c8a !important;
-      cursor: not-allowed !important;
-      transition: background-color .3s, border-color .3s !important;
-      user-select: none !important;
-      margin-bottom: 12px !important;
-      font-size: 18px !important;
-      font-weight: 500 !important;
-      text-align: center !important;
-      pointer-events: none;
-    }
-    
-    .text-conversions:not(.locked) #text-drop-zone {
-      opacity: 1 !important;
-      background-color: #f9fbfc !important;
-      border: 2.5px dashed #8aa9b1 !important;
-      border-radius: 12px !important;
-      padding: 35px 20px !important;
-      color: #5f7c8a !important;
-      cursor: pointer !important;
-      transition: background-color .3s, border-color .3s !important;
-      user-select: none !important;
-      margin-bottom: 12px !important;
-      font-size: 18px !important;
-      font-weight: 500 !important;
-      text-align: center !important;
-      pointer-events: auto;
-    }
-    
-    .text-conversions:not(.locked) #text-drop-zone.dragover {
-      background-color: #e0f0ff !important;
-      border-color: #4a90e2 !important;
-      color: #2a568c !important;
-    }
-    
-    .text-conversions.locked .upgrade-cta {
-      opacity: 1;
-      pointer-events: auto;
-    }
-    
-    .text-conversions.locked::before {
-      content: '🔒';
-      position: absolute;
-      top: 20px;
-      right: 20px;
-      font-size: 24px;
-    }
-    
-    .upgrade-cta {
-      background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 50%, #6d28d9 100%);
-      color: white;
-      padding: 20px;
-      border-radius: 8px;
-      text-align: center;
-      margin-top: 20px;
-      border: 2px solid #a855f7;
-      box-shadow: 0 8px 25px rgba(139, 92, 246, 0.4), 0 0 20px rgba(139, 92, 246, 0.3);
-    }
-    
-    .upgrade-cta a {
-      color: white;
-      text-decoration: none;
-      font-weight: bold;
-      background: linear-gradient(135deg, #a855f7 0%, #9333ea 100%);
-      padding: 12px 24px;
-      border-radius: 8px;
-      display: inline-block;
-      margin-top: 10px;
-      transition: all 0.3s ease;
-      border: 1px solid #c084fc;
-      box-shadow: 0 4px 15px rgba(168, 85, 247, 0.3);
-    }
-    
-    .upgrade-cta a:hover {
-      background: linear-gradient(135deg, #c084fc 0%, #a855f7 100%);
-      transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(168, 85, 247, 0.5);
-    }
-    
-
-    
-    /* Button consistency */
-    button {
-      width: 100%;
-    }
-    
-    /* Download button container */
-    .button-container {
-      display: flex;
-      gap: 10px;
-      margin-top: 10px;
-    }
-    
-    .button-container.single {
-      display: block;
-    }
-    
-    .button-container.single button {
-      width: 100%;
-    }
-    
-    .button-container.dual button {
-      flex: 0 0 50%;
-    }
-    
-    .convert-btn.hide {
-      display: none;
-    }
-    
-    .download-btn, .open-btn {
-      display: none;
-    }
-    
-    .download-btn.show, .open-btn.show {
-      display: block;
-    }
-    
-    /* Responsive text for download buttons */
-    .download-btn .desktop-text,
-    .open-btn .desktop-text {
-      display: inline;
-    }
-    
-    .download-btn .mobile-text,
-    .open-btn .mobile-text {
-      display: none;
-    }
-    
-    @media (max-width: 768px) {
-      .download-btn .desktop-text,
-      .open-btn .desktop-text {
-        display: none;
-      }
-      
-      .download-btn .mobile-text,
-      .open-btn .mobile-text {
-        display: inline;
-      }
-    }
-    
-    @media (max-width: 480px) {
-      .button-container.dual {
-        flex-direction: column;
-      }
-      
-      .button-container.dual button {
-        flex: none;
-        width: 100%;
-      }
-    }
-    
-    /* Responsive widths */
-    .file-conversions { flex: 0 0 50%; min-width: 0; }
-    .text-conversions { flex: 0 0 50%; min-width: 0; }
-    
-    /* History section formatting */
-    #history-section ul {
-      margin: 0;
-      padding-left: 20px;
-    }
-    
-    #history-section li {
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      margin-bottom: 5px;
-    }
-    
-    @media (max-width: 768px) {
-      .main-content {
-        flex-direction: column;
-      }
-      .file-conversions, .text-conversions {
-        flex: none !important;
-      }
-    }
-  </style>
   <link rel="icon" href="{{ url_for('static', filename='favicon.png') }}" type="image/x-icon" />
 </head>
 
 <body>
-  <a href="{% if logged_in %}{{ url_for('account') }}{% else %}{{ url_for('login') }}{% endif %}" class="auth-icon" title="{% if logged_in %}Account{% else %}Login{% endif %}">
-    {% if logged_in %}
-      👤 Account
-    {% else %}
-      🔐 Login
-    {% endif %}
-  </a>
+  {% if logged_in %}
+  <a href="{{ url_for('account') }}" class="auth-icon" title="Account">Account</a>
+  {% else %}
+  <a href="{{ url_for('login') }}" class="auth-icon" title="Login">Login</a>
+  {% endif %}
 
   <div class="container">
-    <h1>Online File & Text Converter</h1>
-    <h2>Convert JPG, PNG, PDF, Word, TXT & More Instantly</h2>
+    <h1>conversions.lol</h1>
+    <h2>Professional file conversion. Beautifully simple.</h2>
 
-    <div class="main-content">
+    <div class="main-content" style="display: block; max-width: 800px; margin: 0 auto;">
       <!-- File Conversions Section -->
-      <div class="file-conversions {% if has_subscription %}with-subscription{% else %}no-subscription{% endif %}">
+      <div class="file-conversions" style="margin-bottom: 80px;">
         <h3>File Conversions</h3>
-        <br>
+        
         <form id="convert-form" action="{{ url_for('convert_file') }}" method="POST" enctype="multipart/form-data">
           <div id="drop-zone" class="upload-area">
-            <p>Drag & Drop your file here (TXT, JPG, SVG, PDF) or <span id="click-select" style="text-decoration: underline; cursor: pointer;">click to browse</span></p>
+            <p>Drop your file here or <span id="click-select">browse</span></p>
             <input type="file" name="file" id="file-input" accept=".txt,.jpg,.jpeg,.pdf,.svg" hidden required />
           </div>
 
-          <p id="file-name" style="font-style: italic; margin-top: 8px; color: #555;">No file selected</p>
+          <p id="file-name">No file selected</p>
 
-          <label for="conversion-type">Select Conversion Type:</label>
+          <label for="conversion-type">Choose conversion:</label>
           <select name="conversion_type" id="conversion-type" required>
-            <option value="" disabled selected>-- Choose conversion --</option>
+            <option value="" disabled selected>Select format</option>
             <option value="txt_to_pdf">TXT → PDF</option>
             <option value="jpg_to_png">JPG → PNG</option>
             <option value="pdf_to_word">PDF → Word</option>
             <option value="svg_to_png">SVG → PNG</option>
           </select>
 
-          <div id="progress-container" style="display:none; margin-top:10px;">
+          <div id="progress-container">
             <div id="progress-bar"></div>
-            <p id="progress-text" style="text-align:center; margin:5px 0; font-size:14px; color:#666;">Processing...</p>
+            <p id="progress-text">Processing...</p>
           </div>
 
           <div class="button-container single" id="file-button-container">
-            <button type="submit" class="convert-btn" id="file-convert-btn">Convert Now</button>
+            <button type="submit" class="convert-btn" id="file-convert-btn">Convert</button>
             <button type="button" class="download-btn" id="file-download-btn">
               <span class="desktop-text">Download Again</span>
               <span class="mobile-text">Download</span>
@@ -316,106 +77,89 @@
           </div>
         </form>
 
-        <section id="history-section" style="margin-top: 30px;">
-          <h4>Recent File Conversions</h4>
+        <section id="history-section">
+          <h4>Recent Conversions</h4>
           {% if history %}
             <ul>
-              {% for item in history[-3:] %}
+              {% for item in history[-5:] %}
                 <li>{{ item.timestamp }} — {{ item.filename }}</li>
               {% endfor %}
             </ul>
           {% else %}
-            <p>No file conversions yet.</p>
+            <p>No conversions yet</p>
           {% endif %}
         </section>
-      </div>
-
-      <!-- Text Conversions Section -->
-      <div class="text-conversions {% if has_subscription %}with-subscription{% else %}no-subscription locked{% endif %}">
-        <h3>✨ Text Conversions <span style="font-size: 12px; background: linear-gradient(135deg, #667eea 0%, #6a25af 100%); color: white; padding: 2px 8px; border-radius: 10px; margin-left: 8px;">PREMIUM</span><span style="font-size: 12px; background: linear-gradient(135deg, #faf733 0%, #af2525 100%); color: white; padding: 2px 8px; border-radius: 10px; margin-left: 8px;">AI/ML</span></h3>
-        
-        <form id="text-convert-form" action="{{ url_for('text_convert') }}" method="POST" enctype="multipart/form-data">
-          <div id="text-drop-zone" class="upload-area">
-            <p>Drag & Drop your file here (PDF, JPG, PNG, TXT) or <span id="text-click-select" style="text-decoration: underline; cursor: pointer;">click to browse</span></p>
-            <input type="file" name="text_file" id="text-file-input" accept=".pdf,.jpg,.jpeg,.png,.txt" hidden {% if not has_subscription %}disabled{% endif %} />
-          </div>
-
-          <p id="text-file-name" style="font-style: italic; margin-top: 8px; color: #555;">No file selected</p>
-
-          <label for="text-conversion-type">Select Conversion Type:</label>
-          <select name="text_conversion_type" id="text-conversion-type" required {% if not has_subscription %}disabled{% endif %}>
-            <option value="" disabled selected>-- Choose conversion --</option>
-            <option value="translate_chinese">🇨🇳 Translate to Chinese</option>
-            <option value="translate_spanish">🇪🇸 Translate to Spanish</option>
-            <option value="translate_arabic">🇸🇦 Translate to Arabic</option>
-            <option value="translate_french">🇫🇷 Translate to French</option>
-            <option value="ocr_extract_txt">📄 Extract OCR to TXT</option>
-            <option value="ocr_extract_pdf">📄 Extract OCR to PDF</option>
-          </select>
-
-          <div id="text-progress-container" style="display:none; margin-top:10px;">
-            <div id="text-progress-bar"></div>
-            <p id="text-progress-text" style="text-align:center; margin:5px 0; font-size:14px; color:#666;">Processing...</p>
-          </div>
-
-          <div class="button-container single" id="text-button-container">
-            <button type="submit" class="convert-btn" id="text-convert-btn">
-              {% if has_subscription %}Convert Now{% else %}🔒 Requires Subscription{% endif %}
-            </button>
-            <button type="button" class="download-btn" id="text-download-btn">
-              <span class="desktop-text">Download Again</span>
-              <span class="mobile-text">Download</span>
-            </button>
-            <button type="button" class="open-btn" id="text-open-btn">
-              <span class="desktop-text">Open in Tab</span>
-              <span class="mobile-text">Open</span>
-            </button>
-          </div>
-        </form>
-
-        <section id="history-section" style="margin-top: 30px;">
-          <h4>Recent Text Conversions</h4>
-          {% if has_subscription %}
-            {% if text_history %}
-              <ul>
-                {% for item in text_history[-3:] %}
-                  <li>{{ item.timestamp }} — {{ item.filename }}</li>
-                {% endfor %}
-              </ul>
-            {% else %}
-              <p>No text conversions yet.</p>
-            {% endif %}
-          {% else %}
-            <p style="color: #888;">Subscribe to see your conversion history.</p>
-          {% endif %}
-        </section>
-        
-        {% if not has_subscription %}
-        <div class="upgrade-cta">
-          <h4>🚀 Unlock Text Conversions</h4>
-          <p>Get unlimited access to language translation, text extraction (OCR), and more!</p>
-          <a href="{% if logged_in %}{{ url_for('purchase') }}{% else %}{{ url_for('login') }}{% endif %}">
-            {% if logged_in %}Subscribe Now{% else %}Login & Subscribe{% endif %}
-          </a>
-        </div>
-        {% endif %}
       </div>
     </div>
 
-    <!-- User Feedback Form -->
-    <section style="margin-top: 50px; max-width: 600px; margin-left: auto; margin-right: auto;">
-      <h2>User Feedback</h2>
-      <form id="feedback-form" action="{{ url_for('submit_feedback') }}" method="POST">
-        <label for="feedback-text">Your Feedback:</label>
-        <textarea id="feedback-text" name="feedback" rows="5" required style="width:100%; padding:8px; margin-top:5px; font-size: 16px;"></textarea>
-        <button type="submit" style="margin-top:10px;">Submit Feedback</button>
-      </form>
-      {% if feedback_message %}
-        <p style="margin-top: 10px; color: green;">{{ feedback_message }}</p>
-      {% endif %}
+    <!-- How It Works Section -->
+    <section>
+      <h2>How It Works</h2>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 40px; margin-top: 40px;">
+        <div style="text-align: center;">
+          <h3>1. Upload</h3>
+          <p>Drag and drop your file or click to browse. We support all major formats.</p>
+        </div>
+        <div style="text-align: center;">
+          <h3>2. Convert</h3>
+          <p>Choose your output format and let our conversion engines handle the rest.</p>
+        </div>
+        <div style="text-align: center;">
+          <h3>3. Download</h3>
+          <p>Get your converted file instantly. Files are automatically deleted for privacy.</p>
+        </div>
+      </div>
     </section>
 
+    <!-- Why Choose Us Section -->
+    <section>
+      <h2>Why Choose conversions.lol</h2>
+      <ul>
+        <li>✓ Always free file conversions</li>
+        <li>✓ No file size limits or watermarks</li>
+        <li>✓ Military-grade security and privacy</li>
+        <li>✓ Works on all devices</li>
+        <li>✓ Built by security professionals</li>
+        <li>✓ No registration required</li>
+      </ul>
+    </section>
+
+    <!-- FAQ Section -->
+    <section>
+      <h2>Frequently Asked Questions</h2>
+      
+      <h3>Are my files secure?</h3>
+      <p>Absolutely. All files are processed with end-to-end encryption and automatically deleted after conversion.</p>
+      
+      <h3>Do I need to create an account?</h3>
+      <p>No account needed for conversions. Login is optional for tracking your conversion history.</p>
+      
+      <h3>What file formats are supported?</h3>
+      <p>We support TXT to PDF, JPG to PNG, PDF to Word, and SVG to PNG conversions with more formats coming soon.</p>
+    </section>
+
+    <!-- Feedback Form -->
+    <section>
+      <h2>Share Your Feedback</h2>
+      <form id="feedback-form" action="{{ url_for('submit_feedback') }}" method="POST">
+        <label for="feedback-text">Tell us how we can improve:</label>
+        <textarea id="feedback-text" name="feedback" rows="4" required placeholder="Your thoughts and suggestions..."></textarea>
+        <button type="submit">Send Feedback</button>
+      </form>
+      {% if feedback_message %}
+        <p style="margin-top: 20px; color: #B85450;">{{ feedback_message }}</p>
+      {% endif %}
+    </section>
   </div>
+
+  <footer>
+    <p>Learn more about file conversion:</p>
+    <p>
+      <a href="{{ url_for('blog_pdf_to_word') }}">PDF to Word Guide</a> | 
+      <a href="{{ url_for('blog_jpg_to_png') }}">JPG to PNG Guide</a> | 
+      <a href="{{ url_for('blog_txt_to_pdf') }}">TXT to PDF Guide</a>
+    </p>
+  </footer>
 
   <script>
     // File conversions functionality
@@ -424,69 +168,13 @@
     
     function canDisplayInBrowser(filename,mimeType){return mimeType&&(mimeType.startsWith('text/')||mimeType.startsWith('image/')||mimeType==='application/pdf')||filename&&(filename.endsWith('.txt')||filename.endsWith('.pdf')||filename.endsWith('.png')||filename.endsWith('.jpg')||filename.endsWith('.jpeg'))}
     
-    function updateFileName(){fileInput.files.length>0?fileNameElem.textContent=`Selected file: ${fileInput.files[0].name}`:fileNameElem.textContent="No file selected"}
+    function updateFileName(){fileInput.files.length>0?fileNameElem.textContent=`Selected: ${fileInput.files[0].name}`:fileNameElem.textContent="No file selected"}
     
     function resetFileButtons(){fileButtonContainer.className="button-container single";fileConvertBtn.classList.remove("hide");fileDownloadBtn.classList.remove("show");fileOpenBtn.classList.remove("show");if(fileBlobUrl){URL.revokeObjectURL(fileBlobUrl);fileBlobUrl=null}fileBlob=null;fileName=null;fileType=null}
     
     function showFileButtons(){fileButtonContainer.className="button-container dual";fileConvertBtn.classList.add("hide");fileDownloadBtn.classList.add("show");fileOpenBtn.classList.add("show")}
     
     clickSelect.addEventListener("click",()=>fileInput.click()),fileInput.addEventListener("change",()=>{updateFileName();resetFileButtons()}),dropZone.addEventListener("dragover",e=>{e.preventDefault(),dropZone.classList.add("dragover")}),dropZone.addEventListener("dragleave",e=>{dropZone.classList.remove("dragover")}),dropZone.addEventListener("drop",e=>{e.preventDefault(),dropZone.classList.remove("dragover"),e.dataTransfer.files.length>0&&(fileInput.files=e.dataTransfer.files,updateFileName(),resetFileButtons())}),document.getElementById("conversion-type").addEventListener("change",()=>{resetFileButtons()}),form.addEventListener("submit",e=>{if(e.preventDefault(),resetFileButtons(),!fileInput.files.length){alert("Please select a file to convert.");return}if(!document.getElementById("conversion-type").value){alert("Please select a conversion type.");return}let t=new FormData(form),n=new XMLHttpRequest;progressContainer.style.display="block";progressBar.style.width="5%";n.open("POST",form.action,!0),n.upload.onprogress=e=>{if(e.lengthComputable){let t=Math.min(e.loaded/e.total*50+5,55);progressBar.style.width=t+"%"}},n.onloadstart=()=>{progressBar.style.width="60%"},n.onload=()=>{if(progressBar.style.width="95%",200===n.status){let e=n.getResponseHeader("Content-Disposition");fileName="converted-file";e&&-1!==e.indexOf("filename=")&&(fileName=e.split("filename=")[1].replace(/['"]/g,""));fileType=n.getResponseHeader("Content-Type");fileBlob=new Blob([n.response],{type:fileType});fileBlobUrl=window.URL.createObjectURL(fileBlob);let l=document.createElement("a");l.href=fileBlobUrl,l.download=fileName,document.body.appendChild(l),l.click(),document.body.removeChild(l),progressBar.style.width="100%",setTimeout(()=>{progressBar.style.width="0%",progressContainer.style.display="none"},800),showFileButtons()}else alert("Conversion failed. Please try again."),progressBar.style.width="0%",progressContainer.style.display="none"},n.responseType="blob",n.send(t)}),fileDownloadBtn.addEventListener("click",()=>{if(fileBlobUrl){let e=document.createElement("a");e.href=fileBlobUrl,e.download=fileName,document.body.appendChild(e),e.click(),document.body.removeChild(e)}}),fileOpenBtn.addEventListener("click",()=>{if(fileBlobUrl){if(canDisplayInBrowser(fileName,fileType)){window.open(fileBlobUrl,"_blank")}else{alert("This file type cannot be displayed in the browser. Please use the Download button instead.")}}}),updateFileName();
-    
-    // Text conversion functionality with progress tracking
-    let textBlob = null, textFileName = null, textBlobUrl = null, textFileType = null;
-    const textDropZone=document.getElementById("text-drop-zone"),textFileInput=document.getElementById("text-file-input"),textClickSelect=document.getElementById("text-click-select"),textForm=document.getElementById("text-convert-form"),textProgressContainer=document.getElementById("text-progress-container"),textProgressBar=document.getElementById("text-progress-bar"),textFileNameElem=document.getElementById("text-file-name"),textButtonContainer=document.getElementById("text-button-container"),textDownloadBtn=document.getElementById("text-download-btn"),textOpenBtn=document.getElementById("text-open-btn"),textConvertBtn=document.getElementById("text-convert-btn");
-    
-    function updateTextFileName(){textFileInput&&textFileInput.files.length>0?textFileNameElem.textContent=`Selected file: ${textFileInput.files[0].name}`:textFileNameElem.textContent="No file selected"}
-    
-    function resetTextButtons(){textButtonContainer.className="button-container single";textConvertBtn.classList.remove("hide");textDownloadBtn.classList.remove("show");textOpenBtn.classList.remove("show");if(textBlobUrl){URL.revokeObjectURL(textBlobUrl);textBlobUrl=null}textBlob=null;textFileName=null;textFileType=null}
-    
-    function showTextButtons(){textButtonContainer.className="button-container dual";textConvertBtn.classList.add("hide");textDownloadBtn.classList.add("show");textOpenBtn.classList.add("show")}
-    
-
-    
-    if(textClickSelect&&textFileInput){textClickSelect.addEventListener("click",()=>textFileInput.click()),textFileInput.addEventListener("change",()=>{updateTextFileName();resetTextButtons()}),textDropZone.addEventListener("dragover",e=>{e.preventDefault(),textDropZone.classList.add("dragover")}),textDropZone.addEventListener("dragleave",e=>{textDropZone.classList.remove("dragover")}),textDropZone.addEventListener("drop",e=>{e.preventDefault(),textDropZone.classList.remove("dragover"),e.dataTransfer.files.length>0&&(textFileInput.files=e.dataTransfer.files,updateTextFileName(),resetTextButtons())}),document.getElementById("text-conversion-type").addEventListener("change",()=>{resetTextButtons()}),textForm.addEventListener("submit",e=>{if(e.preventDefault(),resetTextButtons(),!textFileInput.files.length){alert("Please select a file to convert.");return}if(!document.getElementById("text-conversion-type").value){alert("Please select a conversion type.");return}let t=new FormData(textForm),n=new XMLHttpRequest;textProgressContainer.style.display="block";textProgressBar.style.width="10%";n.open("POST",textForm.action,!0),n.upload.onprogress=e=>{if(e.lengthComputable){let t=Math.min(e.loaded/e.total*30+10,40);textProgressBar.style.width=t+"%"}},n.onloadstart=()=>{textProgressBar.style.width="40%"},n.onload=()=>{if(textProgressBar.style.width="90%",200===n.status){let e=n.getResponseHeader("Content-Disposition");textFileName="converted-text-file";e&&-1!==e.indexOf("filename=")&&(textFileName=e.split("filename=")[1].replace(/['"]/g,""));textFileType=n.getResponseHeader("Content-Type");textBlob=new Blob([n.response],{type:textFileType});textBlobUrl=window.URL.createObjectURL(textBlob);let l=document.createElement("a");l.href=textBlobUrl,l.download=textFileName,document.body.appendChild(l),l.click(),document.body.removeChild(l),textProgressBar.style.width="100%",setTimeout(()=>{textProgressBar.style.width="0%",textProgressContainer.style.display="none"},1000),showTextButtons()}else alert("Text conversion failed. Please try again."),textProgressBar.style.width="0%",textProgressContainer.style.display="none"},n.responseType="blob",n.send(t)}),textDownloadBtn.addEventListener("click",()=>{if(textBlobUrl){let e=document.createElement("a");e.href=textBlobUrl,e.download=textFileName,document.body.appendChild(e),e.click(),document.body.removeChild(e)}}),textOpenBtn.addEventListener("click",()=>{if(textBlobUrl){if(canDisplayInBrowser(textFileName,textFileType)){window.open(textBlobUrl,"_blank")}else{alert("This file type cannot be displayed in the browser. Please use the Download button instead.")}}}),updateTextFileName()}
   </script>
-<section style="margin-top: 40px; text-align: center; background: white; padding: 30px; border-radius: 8px; max-width: 600px; margin-left: auto; margin-right: auto;">
-  <h2>Why Thousands Use Conversions.lol</h2>
-  <ul style="list-style:none; padding:0; font-size: 18px; color: #222; line-height: 1.6;">
-    <li>✅ File Conversions – Always Free</li>
-    <li>✅ Text Conversions – Premium AI/ML Feature</li>
-    <li>✅ Fast & Secure – Files deleted automatically</li>
-    <li>✅ Works on Mobile, Tablet, and Desktop</li>
-  </ul>
-</section>
-
-<section style="margin-top: 40px; text-align: center; background: white; padding: 30px; border-radius: 8px; max-width: 600px; margin-left: auto; margin-right: auto;">
-  <h2>Why Thousands TRUST Conversions.lol</h2>
-  <ul style="list-style:none; padding:0; font-size: 18px; color: #222; line-height: 1.6;">
-    <li>🔷 Full encryption over HTTPS during upload and download</li>
-    <li>🔷 Uses APIs for AI-powered text conversion services from AWS</li>
-    <li>🔷 Files are never stored on servers & memory wiped at refresh</li>
-    <li>🔷 Built by a security engineer with security best practices</li>
-  </ul>
-</section>
-
-<section style="margin-top: 40px; background: white; padding: 30px; border-radius: 8px; max-width: 600px; margin-left: auto; margin-right: auto; text-align: center;">
-  <h2>Frequently Asked Questions</h2>
-
-  <h3>Is my file safe?</h3>
-  <p>Yes! Files are processed securely and deleted automatically after conversion.</p>
-
-  <h3>Do I need to sign up?</h3>
-  <p>No signup required – convert files instantly.</p>
-
-  <h3>What formats are supported?</h3>
-  <p>JPG, PNG, PDF, Word, TXT, and more.</p>
-
-  <h3>What is the premium offering?</h3>
-  <p>Unlimited access to multiple premium AI conversion tools leveraged from Amazon Web Services (AWS)</p>
-</section>
-
-<footer style="text-align:center; margin-top:40px; padding:20px; border-top:1px solid #ddd; font-size: 14px; color: #666;">
-  <p>Explore our helpful blog for file conversion tips:</p>
-  <p>
-    <a href="{{ url_for('blog_pdf_to_word') }}">How to Convert PDF to Word Online</a> | <a href="{{ url_for('blog_jpg_to_png') }}">How to Convert JPG to PNG Easily</a> | <a href="{{ url_for('blog_txt_to_pdf') }}">How to Convert TXT to PDF Fast</a>
-  </p>
-</footer>
 </body>
 </html>

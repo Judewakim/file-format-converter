@@ -3,86 +3,37 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Account - File Converter</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      max-width: 800px;
-      margin: 40px auto;
-      padding: 0 20px;
-      background: #f9f9f9;
-      color: #333;
-    }
-    h1 {
-      border-bottom: 2px solid #007acc;
-      padding-bottom: 10px;
-    }
-    section {
-      background: #fff;
-      padding: 20px;
-      margin-top: 20px;
-      border-radius: 8px;
-      box-shadow: 0 0 8px rgba(0,0,0,0.1);
-    }
-    .logout-btn {
-      display: inline-block;
-      margin-top: 30px;
-      padding: 10px 20px;
-      background-color: #007acc;
-      color: white;
-      text-decoration: none;
-      border-radius: 4px;
-      font-weight: bold;
-    }
-    .logout-btn:hover {
-      background-color: #005fa3;
-    }
-    .back-home-btn {
-      position: fixed;
-      top: 16px;
-      right: 16px;
-      background-color: #007acc;
-      color: white;
-      padding: 10px 18px;
-      border-radius: 4px;
-      font-weight: bold;
-      text-decoration: none;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.15);
-      transition: background-color 0.2s ease;
-      z-index: 9999;
-    }
-    .back-home-btn:hover {
-      background-color: #005fa3;
-    }
-  </style>
+  <title>Account - conversions.lol</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
   <link rel="icon" href="{{ url_for('static', filename='favicon.png') }}" type="image/x-icon" />
 </head>
 <body>
-  <a href="{{ url_for('index') }}" class="back-home-btn" title="Back to Home">🏠 Home</a>
+  <a href="{{ url_for('index') }}" class="auth-icon" title="Back to Home">Home</a>
 
-  <h1>Welcome, {{ user.name }}</h1>
+  <div class="container">
+    <h1>Account</h1>
+    <h2>Your conversion history and settings</h2>
 
-  <section>
-    <h2>Account Info</h2>
-    <p><strong>Email:</strong> {{ user.email }}</p>
-    <!-- Add more user info as needed -->
-  </section>
+    <section>
+      <h3>Profile</h3>
+      <p><strong>Email:</strong> {{ user.email }}</p>
+      <p><strong>Name:</strong> {{ user.name or 'Not provided' }}</p>
+    </section>
 
-  <section>
-    <h2>Billing Info</h2>
+    <section>
+      <h3>Conversion History</h3>
+      <p>Your recent file conversions are tracked in your browser session for convenience.</p>
+      <p>We don't store your files or conversion history on our servers for privacy.</p>
+    </section>
 
-    {% if subscription_active %}
-      <p>Your subscription is <strong> {{ subscription_status }}</strong>. <br>Thank you for subscribing!</p>
-    {% else %}
-      <p>You currently do not have an active subscription.</p>
-      <p><a href="{{ url_for('purchase') }}">Subscribe now</a> to unlock premium features!</p>
-    {% endif %}
-
-    <br>
-    <h3>Subscription Model</h3>
-    <p>Currently supporting monthly subscription plans.</p>
-  </section>
-
-  <a href="{{ url_for('logout') }}" class="logout-btn">Logout</a>
+    <section>
+      <h3>Account Actions</h3>
+      <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+        <a href="{{ url_for('logout') }}" style="display: inline-block; background: #333333; color: white; padding: 16px 32px; border-radius: 12px; text-decoration: none; font-weight: 500; transition: all 0.3s ease;">
+          Sign Out
+        </a>
+      </div>
+    </section>
+  </div>
 </body>
 </html>
