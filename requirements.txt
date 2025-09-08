@@ -27,7 +27,7 @@ pyasn1==0.6.1
 pycparser==2.22
 PyJWT==2.10.1
 PyMuPDF==1.26.3
-PyPDF2==3.0.1
+pdf2docx==0.5.8
 python-dateutil==2.9.0.post0
 python-docx==1.2.0
 python-dotenv==1.1.1

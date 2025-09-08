@@ -11,7 +11,7 @@ import datetime
 
 # File processing libraries
 from PIL import Image
-import PyPDF2
+from pdf2docx import Converter
 from docx import Document
 
 # Character encoding detection
@@ -235,14 +235,10 @@ def convert_file():
 
     # PDF to Word conversion
     elif conversion_type == "pdf_to_word":
-        pdf_reader = PyPDF2.PdfReader(open(input_path, "rb"))
-        doc = Document()
-        for page in pdf_reader.pages:
-            text = page.extract_text()
-            if text:
-                doc.add_paragraph(text)
         output_path = os.path.join(CONVERTED_FOLDER, filename.rsplit(".", 1)[0] + ".docx")
-        doc.save(output_path)
+        cv = Converter(input_path)
+        cv.convert(output_path)
+        cv.close()
 
     # SVG to PNG conversion
     elif conversion_type == "svg_to_png":
